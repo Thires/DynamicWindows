@@ -1,0 +1,11 @@
+C:\Users\Gyp\Desktop\Genie Client 3\Plugins\DynamicWindows\DynamicWindows\obj\Debug\DynamicWindows.FormOptionWindow.resources
+C:\Users\Gyp\Desktop\Genie Client 3\Plugins\DynamicWindows\DynamicWindows\obj\Debug\DynamicWindows.Properties.Resources.resources
+C:\Users\Gyp\Desktop\Genie Client 3\Plugins\DynamicWindows\DynamicWindows\obj\Debug\DynamicWindows.SkinnedMDIChild.resources
+C:\Users\Gyp\Desktop\Genie Client 3\Plugins\DynamicWindows\DynamicWindows\obj\Debug\DynamicWindows.csproj.GenerateResource.cache
+C:\Users\Gyp\Desktop\Genie Client 3\Plugins\DynamicWindows\DynamicWindows\obj\Debug\DynamicWindows.csproj.CoreCompileInputs.cache
+C:\Users\Gyp\Desktop\Genie Client 3\Plugins\DynamicWindows\DynamicWindows\bin\Debug\DynamicWindows.dll
+C:\Users\Gyp\Desktop\Genie Client 3\Plugins\DynamicWindows\DynamicWindows\bin\Debug\DynamicWindows.pdb
+C:\Users\Gyp\Desktop\Genie Client 3\Plugins\DynamicWindows\DynamicWindows\obj\Debug\DynamicWindows.dll
+C:\Users\Gyp\Desktop\Genie Client 3\Plugins\DynamicWindows\DynamicWindows\obj\Debug\DynamicWindows.pdb
+C:\Users\Gyp\Desktop\Genie Client 3\Plugins\DynamicWindows\DynamicWindows\obj\Debug\DynamicWindows.cbDropBox.resources
+C:\Users\Gyp\Desktop\Genie Client 3\Plugins\DynamicWindows\DynamicWindows\obj\Debug\DynamicWindows.csproj.AssemblyReference.cache
