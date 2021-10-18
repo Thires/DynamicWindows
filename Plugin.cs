@@ -620,6 +620,7 @@ namespace DynamicWindows
 			CmdButton cmdButton = (CmdButton)sender;
 			Panel panel = (Panel)cmdButton.Parent;
 			string str1 = cmdButton.cmd_string;
+			string str2 = "";
 			if(cmdButton.cmd_string.Contains("%"))
 			{
 				foreach(Control control in (ArrangedElementCollection)panel.Controls)
@@ -633,33 +634,36 @@ namespace DynamicWindows
 					{
 						str1 = str1.Replace("%" + control.Name + "%", ((cbCheckBox)control).value + " ");
 					}
-					else if(control is cbDropBox)
+					else if (control is cbDropBox)
 					{
 						cbDropBox cbDropBox = (cbDropBox)control;
-						string str2 = null;
-						if(cbDropBox.SelectedIndex > -1)
-							str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
-						if(str1.Contains("province1"))
-							str1 = str1.Replace("%province1%", str2);
-						if(str1.Contains("bank1"))
-							str1 = str1.Replace("%bank1%", str2);
-						if(str1.Contains("bank2"))
-							str1 = str1.Replace("%bank2%", str2 );
-						if(str1.Contains("%category%"))
+						cbDropBox cbDropBox2 = (cbDropBox)control;
+						if (cbDropBox.SelectedIndex > -1)
 						{
-							str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
-							if(str1.Contains("%title%"))
-								str1 = str1.Replace("%details%", ";%details%");
+							str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
+							if (str1.Contains("province1"))
+								str1 = str1.Replace("%province1%", str2);
+							if (str1.Contains("bank1"))
+								str1 = str1.Replace("%bank1%", str2);
+							else if (str1.Contains("bank2"))
+								str1 = str1.Replace("%bank2%", str2);
+							if (str1.Contains("%category%"))
+							{
+								str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
+								if (str1.Contains("%title%"))
+									str1 = str1.Replace("%details%", ";%details%");
+							}
 						}
 						else
 						{
 							str1 = str1.Replace("%" + cmdButton.Name + "%", str2);
+							this.ghost.EchoText("this " + str1);
 						}
 					}
 					else
-						str1 = str1.Replace("%" + control.Name + "%", control.Text);
+						str1 = str1.Replace("%" + control.Name + "%", control.Text + " ");
 				}
-				if(cmdButton.Text.Equals("Clear"))
+				if (cmdButton.Text.Equals("Clear"))
 				{
 					this.forms.Remove((object)(Form)((Control)sender).Parent);
 					((Form)cmdButton.Parent).Close();
@@ -692,6 +696,7 @@ namespace DynamicWindows
 			CmdButton cmdButton = (CmdButton)sender;
 			Panel panel = (Panel)cmdButton.Parent;
 			SkinnedMDIChild skinnedMdiChild = (SkinnedMDIChild)cmdButton.FindForm();
+			string str2 = "";
 			if(cmdButton.cmd_string.Length > 2)
 			{
 				string str1 = cmdButton.cmd_string;
@@ -707,33 +712,31 @@ namespace DynamicWindows
 						else if(control is cbDropBox)
 						{
 							cbDropBox cbDropBox = (cbDropBox)control;
-							string str2 = "1";
-							if(cbDropBox.SelectedIndex > -1)
-								str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
-							if(str1.Contains("province1"))
-								str1 = str1.Replace("%province1%", str2);
-							if(str1.Contains("bank1"))
-								str1 = str1.Replace("%bank1%", str2);
-							if(str1.Contains("bank2"))
-								str1 = str1.Replace("%bank2%", str2);
-							if(str1.Contains("%category%"))
+							cbDropBox cbDropBox2 = (cbDropBox)control;
+							if (cbDropBox.SelectedIndex > -1)
 							{
-								str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
-								if(str1.Contains("%title%"))
-									str1 = str1.Replace("%details%", ";%details%");
+								str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
+								if (str1.Contains("province1"))
+									str1 = str1.Replace("%province1%", str2);
+								if (str1.Contains("bank1"))
+									str1 = str1.Replace("%bank1%", str2);
+								else if (str1.Contains("bank2"))
+									str1 = str1.Replace("%bank2%", str2);
+								if (str1.Contains("%category%"))
+								{
+									str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
+									if (str1.Contains("%title%"))
+										str1 = str1.Replace("%details%", ";%details%");
+								}
 							}
 							else
-							{
 								str1 = str1.Replace("%" + cmdButton.Name + "%", str2);
-							}
 						}
 						else
-						{
 							str1 = str1.Replace("%" + control.Name + "%", control.Text);
-						}
-						}
+					}
+						this.ghost.SendText(str1.Replace(";", "\\;"));
 				}
-				this.ghost.SendText(str1.Replace(";", "\\;"));
 			}
 			this.forms.Remove((object)skinnedMdiChild);
 			skinnedMdiChild.Close();
