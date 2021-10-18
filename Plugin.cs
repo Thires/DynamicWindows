@@ -641,11 +641,11 @@ namespace DynamicWindows
 						if (cbDropBox.SelectedIndex > -1)
 						{
 							str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
-							if (str1.Contains("province1"))
+							if (str1.Contains("%province1%"))
 								str1 = str1.Replace("%province1%", str2);
-							if (str1.Contains("bank1"))
+							if (str1.Contains("%bank1%"))
 								str1 = str1.Replace("%bank1%", str2);
-							else if (str1.Contains("bank2"))
+							else if (str1.Contains("%bank2%"))
 								str1 = str1.Replace("%bank2%", str2);
 							if (str1.Contains("%category%"))
 							{
@@ -655,10 +655,7 @@ namespace DynamicWindows
 							}
 						}
 						else
-						{
 							str1 = str1.Replace("%" + cmdButton.Name + "%", str2);
-							this.ghost.EchoText("this " + str1);
-						}
 					}
 					else
 						str1 = str1.Replace("%" + control.Name + "%", control.Text + " ");
@@ -716,11 +713,11 @@ namespace DynamicWindows
 							if (cbDropBox.SelectedIndex > -1)
 							{
 								str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
-								if (str1.Contains("province1"))
+								if (str1.Contains("%province1%"))
 									str1 = str1.Replace("%province1%", str2);
-								if (str1.Contains("bank1"))
+								if (str1.Contains("%bank1%"))
 									str1 = str1.Replace("%bank1%", str2);
-								else if (str1.Contains("bank2"))
+								else if (str1.Contains("%bank2%"))
 									str1 = str1.Replace("%bank2%", str2);
 								if (str1.Contains("%category%"))
 								{
