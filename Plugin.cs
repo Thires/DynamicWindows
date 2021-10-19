@@ -637,7 +637,6 @@ namespace DynamicWindows
 					else if (control is cbDropBox)
 					{
 						cbDropBox cbDropBox = (cbDropBox)control;
-						cbDropBox cbDropBox2 = (cbDropBox)control;
 						if (cbDropBox.SelectedIndex > -1)
 						{
 							str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
@@ -709,7 +708,6 @@ namespace DynamicWindows
 						else if(control is cbDropBox)
 						{
 							cbDropBox cbDropBox = (cbDropBox)control;
-							cbDropBox cbDropBox2 = (cbDropBox)control;
 							if (cbDropBox.SelectedIndex > -1)
 							{
 								str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
