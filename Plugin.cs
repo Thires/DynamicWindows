@@ -638,20 +638,18 @@ namespace DynamicWindows
 					{
 						cbDropBox cbDropBox = (cbDropBox)control;
 						if (cbDropBox.SelectedIndex > -1)
-						{
 							str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
-							if (str1.Contains("%province1%"))
-								str1 = str1.Replace("%province1%", str2);
-							if (str1.Contains("%bank1%"))
-								str1 = str1.Replace("%bank1%", str2);
-							else if (str1.Contains("%bank2%"))
-								str1 = str1.Replace("%bank2%", str2);
-							if (str1.Contains("%category%"))
-							{
-								str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
-								if (str1.Contains("%title%"))
-									str1 = str1.Replace("%details%", ";%details%");
-							}
+						if (str1.Contains("%province1%"))
+							str1 = str1.Replace("%province1%", str2);
+						if (str1.Contains("%bank1%"))
+							str1 = str1.Replace("%bank1%", str2);
+						else if (str1.Contains("%bank2%"))
+							str1 = str1.Replace("%bank2%", str2);
+						if (str1.Contains("%category%"))
+						{
+							str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
+							if (str1.Contains("%title%"))
+								str1 = str1.Replace("%details%", ";%details%");
 						}
 						else
 							str1 = str1.Replace("%" + cmdButton.Name + "%", str2);
@@ -709,20 +707,18 @@ namespace DynamicWindows
 						{
 							cbDropBox cbDropBox = (cbDropBox)control;
 							if (cbDropBox.SelectedIndex > -1)
-							{
 								str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
-								if (str1.Contains("%province1%"))
-									str1 = str1.Replace("%province1%", str2);
-								if (str1.Contains("%bank1%"))
-									str1 = str1.Replace("%bank1%", str2);
-								else if (str1.Contains("%bank2%"))
-									str1 = str1.Replace("%bank2%", str2);
-								if (str1.Contains("%category%"))
-								{
-									str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
-									if (str1.Contains("%title%"))
-										str1 = str1.Replace("%details%", ";%details%");
-								}
+							if (str1.Contains("%province1%"))
+								str1 = str1.Replace("%province1%", str2);
+							if (str1.Contains("%bank1%"))
+								str1 = str1.Replace("%bank1%", str2);
+							else if (str1.Contains("%bank2%"))
+								str1 = str1.Replace("%bank2%", str2);
+							if (str1.Contains("%category%"))
+							{
+								str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
+								if (str1.Contains("%title%"))
+									str1 = str1.Replace("%details%", ";%details%");
 							}
 							else
 								str1 = str1.Replace("%" + cmdButton.Name + "%", str2);
