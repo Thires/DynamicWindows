@@ -729,9 +729,9 @@ namespace DynamicWindows
 						}
 						else
 							str1 = str1.Replace("%" + control.Name + "%", control.Text);
-					}
-						this.ghost.SendText(str1.Replace(";", "\\;"));
+					}			
 				}
+				this.ghost.SendText(str1.Replace(";", "\\;"));
 			}
 			this.forms.Remove((object)skinnedMdiChild);
 			skinnedMdiChild.Close();
