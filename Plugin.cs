@@ -24,14 +24,6 @@ namespace DynamicWindows
 		public IHost ghost;
 		private string configPath;
 
-		public string Name
-		{
-			get
-			{
-				return "Dynamic Windows";
-			}
-		}
-
 		public bool Enabled
 		{
 			get
@@ -47,29 +39,13 @@ namespace DynamicWindows
 			}
 		}
 
-		public string Version
-		{
-			get
-			{
-				return "1.2.4";
-			}
-		}
+		public string Name => "Dynamic Windows";
 
-		public string Author
-		{
-			get
-			{
-				return "Multiple Developers";
-			}
-		}
+		public string Version => "1.2.5";
 
-		public string Description
-		{
-			get
-			{
-				return "Displays content windows specified through the XML stream from the game.";
-			}
-		}
+		public string Author => "Multiple Developers";
+
+		public string Description => "Displays content windows specified through the XML stream from the game.";
 
 		public void Initialize(IHost Host)
 		{
