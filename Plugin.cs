@@ -667,6 +667,7 @@ namespace DynamicWindows
 			Panel panel = (Panel)cmdButton.Parent;
 			SkinnedMDIChild skinnedMdiChild = (SkinnedMDIChild)cmdButton.FindForm();
 			string str2 = "";
+			string tempStr2 = "";
 			if(cmdButton.cmd_string.Length > 2)
 			{
 				string str1 = cmdButton.cmd_string;
@@ -684,6 +685,7 @@ namespace DynamicWindows
 							cbDropBox cbDropBox = (cbDropBox)control;
 							if (cbDropBox.SelectedIndex > -1)
 								str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
+							tempStr2 = str2;
 							if (str1.Contains("%province1%"))
 								str1 = str1.Replace("%province1%", str2);
 							if (str1.Contains("%bank1%"))
@@ -703,7 +705,8 @@ namespace DynamicWindows
 							str1 = str1.Replace("%" + control.Name + "%", control.Text);
 					}			
 				}
-				this.ghost.SendText(str1.Replace(";", "\\;"));
+				if (tempStr2 != "")
+					this.ghost.SendText(str1.Replace(";", "\\;"));
 			}
 			this.forms.Remove((object)skinnedMdiChild);
 			skinnedMdiChild.Close();
