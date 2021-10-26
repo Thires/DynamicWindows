@@ -646,7 +646,6 @@ namespace DynamicWindows
 		{
 			cbDropBox cbDropBox = (cbDropBox)sender;
 			string str = "";
-			//int selectedIndex = cbDropBox.SelectedIndex + 1;
 			if(cbDropBox.cmd.Contains("%"))
 			{
 				string newValue = "";
