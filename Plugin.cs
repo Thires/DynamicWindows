@@ -667,6 +667,7 @@ namespace DynamicWindows
 			Panel panel = (Panel)cmdButton.Parent;
 			SkinnedMDIChild skinnedMdiChild = (SkinnedMDIChild)cmdButton.FindForm();
 			string str2 = "";
+			string tempStr1 = "";
 			string tempStr2 = "";
 			if(cmdButton.cmd_string.Length > 2)
 			{
@@ -679,6 +680,7 @@ namespace DynamicWindows
 						{
 							if(((RadioButton)control).Checked)
 								str1 = str1.Replace("%" + ((cbRadio)control).group + "%", ((cbRadio)control).command + " ");
+							tempStr1 = str1;
 						}
 						else if(control is cbDropBox)
 						{
@@ -705,6 +707,8 @@ namespace DynamicWindows
 							str1 = str1.Replace("%" + control.Name + "%", control.Text);
 					}			
 				}
+				if (tempStr1 != "")
+					this.ghost.SendText(str1.Replace(";", "\\;"));
 				if (tempStr2 != "")
 					this.ghost.SendText(str1.Replace(";", "\\;"));
 			}
