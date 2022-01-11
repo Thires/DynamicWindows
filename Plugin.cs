@@ -719,7 +719,7 @@ namespace DynamicWindows
 					skinnedMdiChild.Close();
 				}
 				else
-					this.ghost.EchoText(str1.Replace(";", "\\;"));
+					this.ghost.SendText(str1.Replace(";", "\\;"));
 			}
 			this.forms.Remove((object)skinnedMdiChild);
 			skinnedMdiChild.Close();
