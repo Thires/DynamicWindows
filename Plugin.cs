@@ -595,50 +595,54 @@ namespace DynamicWindows
 
 		public void cbCommand(object sender, EventArgs e)
 		{
-			CmdButton cmdButton = (CmdButton)sender;
+			CmdButton cmdButton = (CmdButton)sender;	
 			Panel panel = (Panel)cmdButton.Parent;
 			string str1 = cmdButton.cmd_string;
 			string str2 = "";
-			if(cmdButton.cmd_string.Contains("%"))
+			if (cmdButton.cmd_string.Contains("%"))
 			{
-				foreach(Control control in (ArrangedElementCollection)panel.Controls)
+				foreach (Control control in (ArrangedElementCollection)panel.Controls)
 				{
-					if(control is cbRadio)
+					switch (control)
 					{
-						if(((RadioButton)control).Checked)
-							str1 = str1.Replace("%" + ((cbRadio)control).group + "%", ((cbRadio)control).command + " ");
+						case cbRadio _:
+							if (((RadioButton)control).Checked)
+							{
+								str1 = str1.Replace("%" + ((cbRadio)control).group + "%", ((cbRadio)control).command + " ");
+								continue;
+							}
+							continue;
+						case cbCheckBox _:
+							str1 = str1.Replace("%" + control.Name + "%", ((cbCheckBox)control).value + " ");
+							continue;
+						case cbDropBox _:
+							cbDropBox cbDropBox = (cbDropBox)control;
+							if (cbDropBox.SelectedIndex > -1)
+								str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
+							if (str1.Contains("%province1%"))
+								str1 = str1.Replace("%province1%", str2);
+							if (str1.Contains("%bank1%"))
+								str1 = str1.Replace("%bank1%", str2);
+							else if (str1.Contains("%bank2%"))
+								str1 = str1.Replace("%bank2%", str2);
+							if (str1.Contains("%category%"))
+							{
+								str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
+								if (str1.Contains("%title%"))
+									str1 = str1.Replace("%details%", ";%details%");
+							}
+							else
+								str1 = str1.Replace("%" + cmdButton.Name + "%", str2);
+							continue;
+						default:
+							str1 = str1.Replace("%" + control.Name + "%", control.Text + " ");
+							continue;
 					}
-					else if(control is cbCheckBox)
+					if (cmdButton.Text.Equals("Clear"))
 					{
-						str1 = str1.Replace("%" + control.Name + "%", ((cbCheckBox)control).value + " ");
+						this.forms.Remove((object)(Form)((Control)sender).Parent);
+						((Form)cmdButton.Parent).Close();
 					}
-					else if (control is cbDropBox)
-					{
-						cbDropBox cbDropBox = (cbDropBox)control;
-						if (cbDropBox.SelectedIndex > -1)
-							str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
-						if (str1.Contains("%province1%"))
-							str1 = str1.Replace("%province1%", str2);
-						if (str1.Contains("%bank1%"))
-							str1 = str1.Replace("%bank1%", str2);
-						else if (str1.Contains("%bank2%"))
-							str1 = str1.Replace("%bank2%", str2);
-						if (str1.Contains("%category%"))
-						{
-							str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
-							if (str1.Contains("%title%"))
-								str1 = str1.Replace("%details%", ";%details%");
-						}
-						else
-							str1 = str1.Replace("%" + cmdButton.Name + "%", str2);
-					}
-					else
-						str1 = str1.Replace("%" + control.Name + "%", control.Text + " ");
-				}
-				if (cmdButton.Text.Equals("Clear"))
-				{
-					this.forms.Remove((object)(Form)((Control)sender).Parent);
-					((Form)cmdButton.Parent).Close();
 				}
 			}
 			this.ghost.SendText(str1.Replace(";", "\\;"));
@@ -671,40 +675,51 @@ namespace DynamicWindows
 			if(cmdButton.cmd_string.Length > 2)
 			{
 				string str1 = cmdButton.cmd_string;
-				if(cmdButton.cmd_string.Contains("%"))
+				if (cmdButton.cmd_string.Contains("%"))
 				{
-					foreach(Control control in (ArrangedElementCollection)panel.Controls)
+					foreach (Control control in (ArrangedElementCollection)panel.Controls)
 					{
-						if(control is cbRadio)
+						switch (control)
 						{
-							if(((RadioButton)control).Checked)
-								str1 = str1.Replace("%" + ((cbRadio)control).group + "%", ((cbRadio)control).command + " ");
+							case cbRadio _:
+								if (((RadioButton)control).Checked)
+								{
+									str1 = str1.Replace("%" + ((cbRadio)control).group + "%", ((cbRadio)control).command + " ");
+									continue;
+								}
+								continue;
+							case cbDropBox _:
+								cbDropBox cbDropBox = (cbDropBox)control;
+								if (cbDropBox.SelectedIndex > -1)
+									str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
+								if (str1.Contains("%province1%"))
+									str1 = str1.Replace("%province1%", str2);
+								if (str1.Contains("%bank1%"))
+									str1 = str1.Replace("%bank1%", str2);
+								else if (str1.Contains("%bank2%"))
+									str1 = str1.Replace("%bank2%", str2);
+								if (str1.Contains("%category%"))
+								{
+									str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
+									if (str1.Contains("%title%"))
+										str1 = str1.Replace("%details%", ";%details%");
+								}
+								else
+									str1 = str1.Replace("%" + cmdButton.Name + "%", str2);
+								continue;
+							default:
+								str1 = str1.Replace("%" + control.Name + "%", control.Text + " ");
+								continue;
 						}
-						else if(control is cbDropBox)
-						{
-							cbDropBox cbDropBox = (cbDropBox)control;
-							if (cbDropBox.SelectedIndex > -1)
-								str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
-							if (str1.Contains("%province1%"))
-								str1 = str1.Replace("%province1%", str2);
-							if (str1.Contains("%bank1%"))
-								str1 = str1.Replace("%bank1%", str2);
-							else if (str1.Contains("%bank2%"))
-								str1 = str1.Replace("%bank2%", str2);
-							if (str1.Contains("%category%"))
-							{
-								str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
-								if (str1.Contains("%title%"))
-									str1 = str1.Replace("%details%", ";%details%");
-							}
-							else
-								str1 = str1.Replace("%" + cmdButton.Name + "%", str2);
-						}
-						else
-							str1 = str1.Replace("%" + control.Name + "%", control.Text);
-					}			
+					}
 				}
-					this.ghost.SendText(str1.Replace(";", "\\;"));
+				if (str2 == "")
+				{
+					this.forms.Remove((object)skinnedMdiChild);
+					skinnedMdiChild.Close();
+				}
+				else
+					this.ghost.EchoText(str1.Replace(";", "\\;"));
 			}
 			this.forms.Remove((object)skinnedMdiChild);
 			skinnedMdiChild.Close();
