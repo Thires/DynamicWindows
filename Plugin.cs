@@ -627,12 +627,10 @@ namespace DynamicWindows
 								str1 = str1.Replace("%bank2%", str2);
 							if (control.Name == "category")
 							{
-								str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
-								if (str1.Contains("%title%"))
-									str1 = str1.Replace("%details%", ";%details%");
+								str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")));
+								str1 = str1.Replace("%title%", ";%title%");
+								str1 = str1.Replace("%details%", ";%details%");
 							}
-							else
-								str1 = str1.Replace("%" + cmdButton.Name + "%", str2);
 							continue;
 						default:
 							str1 = str1.Replace("%" + control.Name + "%", control.Text + " ");
@@ -700,15 +698,13 @@ namespace DynamicWindows
 									str1 = str1.Replace("%bank2%", str2);
 								if (control.Name == "category")
 								{
-									str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")) + ";");
-									if (str1.Contains("%title%"))
-										str1 = str1.Replace("%details%", ";%details%");
+									str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")));
+									str1 = str1.Replace("%title%", ";%title%");
+									str1 = str1.Replace("%details%", ";%details%");
 								}
-								else
-									str1 = str1.Replace("%" + cmdButton.Name + "%", str2);
 								continue;
 							default:
-								str1 = str1.Replace("%" + control.Name + "%", control.Text + " ");
+								str1 = str1.Replace("%" + control.Name + "%", control.Text);
 								continue;
 						}
 					}
@@ -725,7 +721,7 @@ namespace DynamicWindows
 			skinnedMdiChild.Close();
 		}
 
-	public void cbRadioSelect(object sender, EventArgs e)
+		public void cbRadioSelect(object sender, EventArgs e)
     {
       cbRadio cbRadio = (cbRadio) sender;
       SkinnedMDIChild skinnedMdiChild = (SkinnedMDIChild) cbRadio.FindForm();
