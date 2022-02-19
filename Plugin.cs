@@ -583,11 +583,9 @@ namespace DynamicWindows
 			label.Text = cbx.GetAttribute("value");
 			label.Name = cbx.GetAttribute("id");
 			label.Size = this.build_size(cbx, 200, 15);
-			if (!cbx.HasAttribute("width"))
-				label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
-			if (label.Name == "strNetCost" || label.Name == "strTotalCost")
-				label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
-				label.Location = this.set_location(cbx, (Control)label, dyndialog);
+			//if (!cbx.HasAttribute("width"))
+			label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
+			label.Location = this.set_location(cbx, (Control)label, dyndialog);
 			if(dyndialog.formBody.Controls.Contains((Control)label))
 				return;
 			dyndialog.formBody.Controls.Add((Control)label);
