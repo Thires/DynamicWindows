@@ -584,7 +584,8 @@ namespace DynamicWindows
 			label.Name = cbx.GetAttribute("id");
 			label.Size = this.build_size(cbx, 200, 15);
 			//if (!cbx.HasAttribute("width"))
-			label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
+			if (TextRenderer.MeasureText(label.Text, label.Font).Width > 0)
+				label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
 			label.Location = this.set_location(cbx, (Control)label, dyndialog);
 			if(dyndialog.formBody.Controls.Contains((Control)label))
 				return;
@@ -634,11 +635,11 @@ namespace DynamicWindows
 							str1 = str1.Replace("%" + control.Name + "%", control.Text + " ");
 							continue;
 					}
-					if (cmdButton.Text.Equals("Clear"))
-					{
-						this.forms.Remove((object)(Form)((Control)sender).Parent);
-						((Form)cmdButton.Parent).Close();
-					}
+				}
+				if (cmdButton.Text.Equals("Clear"))
+				{
+					this.forms.Remove((object)(Form)((Control)sender).Parent);
+					((Form)cmdButton.Parent).Close();
 				}
 			}
 			this.ghost.SendText(str1.Replace(";", "\\;"));
