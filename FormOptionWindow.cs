@@ -261,7 +261,7 @@ namespace DynamicWindows
       Form form1 = (Form) null;
       foreach (Form form2 in this._plugin.forms)
       {
-        if (((object) form2.Name).Equals(this.listBox_ignores.Items[this.listBox_ignores.SelectedIndex]))
+        if (((object) form2.Name).Equals(this.listbox_openwindows.Items[this.listbox_openwindows.SelectedIndex]))
         {
           form1 = form2;
           break;
@@ -269,6 +269,8 @@ namespace DynamicWindows
       }
       if (form1 == null)
         return;
+      this.listbox_openwindows.Items.Remove((object) form1.Name);
+      this._plugin.forms.Remove((object) form1.Name);
       this._plugin.forms.Remove((object) form1);
       form1.Close();
       this.listbox_openwindows.Items.Remove((object) form1.Name);
