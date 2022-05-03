@@ -533,7 +533,7 @@ namespace DynamicWindows
 			cmdButton.Name = cbx.GetAttribute("id");
 			cmdButton.Text = cbx.GetAttribute("value");
 			cmdButton.Size = this.build_size(cbx, 55, 20);
-			cmdButton.Size = new Size(cmdButton.Size.Width + 10, cmdButton.Size.Height);
+			cmdButton.Size = new Size(cmdButton.Size.Width + 10, cmdButton.Size.Height + 3);
 			cmdButton.cmd_string = !cbx.HasAttribute("cmd") ? "" : cbx.GetAttribute("cmd");
 			cmdButton.Location = this.set_location(cbx, (Control)cmdButton, dyndialog);
 			cmdButton.Click += new EventHandler(this.cbClose);
@@ -571,7 +571,7 @@ namespace DynamicWindows
 			cmdButton.Text = cbx.GetAttribute("value");
 			cmdButton.cmd_string = cbx.GetAttribute("cmd");
 			cmdButton.Size = this.build_size(cbx, 50, 20);
-			cmdButton.Size = new Size(cmdButton.Size.Width + 10, cmdButton.Size.Height);
+			cmdButton.Size = new Size(cmdButton.Size.Width + 10, cmdButton.Size.Height + 3);
 			cmdButton.Location = this.set_location(cbx, (Control)cmdButton, dyndialog);
 			cmdButton.Click += new EventHandler(this.cbCommand);
 			dyndialog.formBody.Controls.Add((Control)cmdButton);
