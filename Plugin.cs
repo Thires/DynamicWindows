@@ -356,6 +356,7 @@ namespace DynamicWindows
                 dyndialog.Location = this.positionList[xelem.GetAttribute("id")];
             dyndialog.formBody.Visible = false;
             dyndialog.StartPosition = FormStartPosition.CenterScreen;
+            dyndialog.AutoSize = true;
 
             // Add a FormClosing event handler
             dyndialog.FormClosing += Dyndialog_FormClosing;
