@@ -28,8 +28,9 @@ namespace DynamicWindows
         public Form pForm;
         public IHost ghost;
         private string configPath;
-
+        private bool userClosing = false;
         private string chooseSpell;
+
         public bool Enabled
         {
             get
@@ -294,7 +295,6 @@ namespace DynamicWindows
                     case "closeButton":
                         this.Parse_close_button(cbx, dyndialog);
                         break;
-
                     case "checkBox":
                         this.Parse_check_box(cbx, dyndialog);
                         break;
@@ -327,7 +327,6 @@ namespace DynamicWindows
             dyndialog.ShowForm();
         }
 
-
         public void Parse_xml_openwindow(XmlElement xelem)
         {
             if (!xelem.GetAttribute("type").Equals("dynamic") || !xelem.HasAttribute("width") || !xelem.HasAttribute("height"))
@@ -356,6 +355,7 @@ namespace DynamicWindows
             if (this.positionList.ContainsKey(xelem.GetAttribute("id")))
                 dyndialog.Location = this.positionList[xelem.GetAttribute("id")];
             dyndialog.formBody.Visible = false;
+            dyndialog.StartPosition = FormStartPosition.CenterScreen;
 
             // Add a FormClosing event handler
             dyndialog.FormClosing += Dyndialog_FormClosing;
@@ -372,7 +372,6 @@ namespace DynamicWindows
                     case "closeButton":
                         this.Parse_close_button(xmlElement, dyndialog);
                         continue;
-
                     case "radio":
                         this.Parse_radio_button(xmlElement, dyndialog);
                         continue;
@@ -406,8 +405,6 @@ namespace DynamicWindows
             dyndialog.ShowForm();
         }
 
-        private bool userClosing = false;
-
         private void Dyndialog_FormClosing(object sender, FormClosingEventArgs e)
         {
             if (e.CloseReason == CloseReason.UserClosing)
@@ -415,7 +412,6 @@ namespace DynamicWindows
                 userClosing = true;
             }
         }
-
 
         private void Parse_container(XmlElement elem)
         {
@@ -518,7 +514,6 @@ namespace DynamicWindows
                                 }
                             }
                         }
-
                         else if (id == "spellInfo")
                         {
                             // Handle the "spellInfo" stream

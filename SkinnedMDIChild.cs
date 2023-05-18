@@ -191,21 +191,18 @@ namespace DynamicWindows
       this._plugin.forms.Remove(sender);
     }
 
-        private void closeToolStripMenuItem_Click(object sender, EventArgs e)
-        {
-            if (this.CloseCommand != null)
-            {
-                this.CloseCommand.Tag = false;
-            }
+    private void closeToolStripMenuItem_Click(object sender, EventArgs e)
+    {
+        if (this.CloseCommand != null)
+            this.CloseCommand.Tag = false;
 
-            if (this.CloseCommand == null)
-                this.Hide();
-            else
-                this._plugin.CbClose((object)this.CloseCommand, e);
-        }
+        if (this.CloseCommand == null)
+            this.Hide();
+        else
+            this._plugin.CbClose((object)this.CloseCommand, e);
+    }
 
-
-        private void SkinnedMDIChild_MouseDown(object sender, MouseEventArgs e)
+    private void SkinnedMDIChild_MouseDown(object sender, MouseEventArgs e)
     {
       if (e.Button != MouseButtons.Right)
         return;
