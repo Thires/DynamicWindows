@@ -713,7 +713,15 @@ namespace DynamicWindows
         private void Parse_close_button(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
             // Create a new closeButton
-            CmdButton closeButton = new CmdButton();
+            CmdButton closeButton = dyndialog.formBody.Controls.OfType<CmdButton>().FirstOrDefault(b => b.Name == cbx.GetAttribute("id"));
+
+            // Check if the closeButton was found
+            if (closeButton != null)
+            {
+                // Remove the existing closeButton control
+                dyndialog.formBody.Controls.Remove(closeButton);
+            }
+            closeButton = new CmdButton();
             closeButton.Name = cbx.GetAttribute("id");
             closeButton.Text = cbx.GetAttribute("value"); // Set the Text property to the value of the value attribute
             closeButton.AutoSize = true;
@@ -732,7 +740,6 @@ namespace DynamicWindows
                 chooseSpell = chooseSpell.Trim();
             }
         }
-
 
         private void Spell_Click(object sender, EventArgs e)
         {
@@ -929,13 +936,14 @@ namespace DynamicWindows
             if (cmdButton.Tag is bool sendCommand && !sendCommand)
             {
                 cmdButton.Tag = true;
+                cmdButton.Text = null;
                 return;
             }
             // Perform the same actions as the chooseButton.Click event handler
             // Only send the command if the sender is a CmdButton with Name property set to "send"
             else if (sender is CmdButton && ((CmdButton)sender).Name == "chooseSpell")
             {
-                ghost.EchoText(chooseSpell);
+                ghost.SendText(chooseSpell);
                 chooseSpell = "";
             }
 
