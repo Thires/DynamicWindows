@@ -185,9 +185,8 @@ namespace DynamicWindows
         {
             if (!this.bPluginEnabled)
                 return;
-            //ghost.EchoText("ParseXML XML: " + XML);
+
             XmlDocument xmlDocument = new XmlDocument();
-            //ghost.EchoText("ParseXML XML: " + xmlDocument);
             xmlDocument.LoadXml("<?xml version='1.0'?><root>" + XML + "</root>");
             foreach (XmlElement xmlElement in xmlDocument.DocumentElement.ChildNodes)
             {
@@ -663,6 +662,7 @@ namespace DynamicWindows
             }
         }
 
+
         private void Parse_stream_box(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
             if (cbx.GetAttribute("id") == "spells")
@@ -820,18 +820,35 @@ namespace DynamicWindows
 
         private void Parse_close_button(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
-            // Create a new closeButton
-            CmdButton closeButton = new CmdButton();
-            closeButton.Name = cbx.GetAttribute("id");
-            closeButton.Text = cbx.GetAttribute("value"); // Set the Text property to the value of the value attribute
-            closeButton.AutoSize = true;
-            closeButton.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            closeButton.cmd_string = !cbx.HasAttribute("cmd") ? "" : cbx.GetAttribute("cmd");
-            closeButton.Location = this.Set_location(cbx, (Control)closeButton, dyndialog);
-            closeButton.Click += new EventHandler(this.CbClose);
-            dyndialog.formBody.Controls.Add((Control)closeButton);
-            dyndialog.CloseCommand = (Button)closeButton;
+            // Find the existing choose button control
+            Control chooseButton = dyndialog.formBody.Controls.Find("chooseSpell", true).FirstOrDefault();
+
+            // Check if the choose button was found
+            if (chooseButton != null)
+            {
+                // Update the text and command of the choose button
+                chooseButton.Text = cbx.GetAttribute("value");
+                ((CmdButton)chooseButton).cmd_string = !cbx.HasAttribute("cmd") ? "" : cbx.GetAttribute("cmd");
+
+                // Redraw the choose button
+                chooseButton.Invalidate();
+            }
+            else
+            {
+                // Create a new closeButton if it doesn't exist
+                CmdButton closeButton = new CmdButton();
+                closeButton.Name = cbx.GetAttribute("id");
+                closeButton.Text = cbx.GetAttribute("value"); // Set the Text property to the value of the value attribute
+                closeButton.AutoSize = true;
+                closeButton.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+                closeButton.cmd_string = !cbx.HasAttribute("cmd") ? "" : cbx.GetAttribute("cmd");
+                closeButton.Location = this.Set_location(cbx, (Control)closeButton, dyndialog);
+                closeButton.Click += new EventHandler(this.CbClose);
+                dyndialog.formBody.Controls.Add((Control)closeButton);
+                dyndialog.CloseCommand = (Button)closeButton;
+            }
         }
+
 
         private void Parse_drop_down(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
@@ -852,8 +869,15 @@ namespace DynamicWindows
                 cbDropBox.SelectedIndexChanged += new EventHandler(this.Cb_SelectedIndexChanged);
             }
             cbDropBox.Size = this.Build_size(cbx, 55, 20);
+            if (cbDropBox.Name == "locationSettingDD")
+            {
+                Point currentLocation = this.Set_location(cbx, (Control)cbDropBox, dyndialog);
+                cbDropBox.Location = new Point(currentLocation.X + 10, currentLocation.Y);
+            }
+            else
             cbDropBox.Location = this.Set_location(cbx, (Control)cbDropBox, dyndialog);
             dyndialog.formBody.Controls.Add((Control)cbDropBox);
+
         }
 
         private void Parse_command_buttons(XmlElement cbx, SkinnedMDIChild dyndialog)
@@ -869,13 +893,14 @@ namespace DynamicWindows
             dyndialog.formBody.Controls.Add((Control)cmdButton);
         }
 
+
         private void Parse_labels(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
             Label label = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new Label() : (Label)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
             label.Text = cbx.GetAttribute("value");
             label.Name = cbx.GetAttribute("id");
             label.AutoSize = true;
-            //label.Size = this.Build_size(cbx, 200, 15);
+            label.Size = this.Build_size(cbx, 200, 15);
             //if (!cbx.HasAttribute("width"))
             if (TextRenderer.MeasureText(label.Text, label.Font).Width > 0)
                 label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
@@ -890,8 +915,6 @@ namespace DynamicWindows
             CmdButton cmdButton = (CmdButton)sender;
             Panel panel = (Panel)cmdButton.Parent;
             string str1 = cmdButton.cmd_string;
-            // Add debugging code to print out a message when a button is clicked
-            //ghost.EchoText("Button clicked: " + cmdButton.Name + ", cmd_string: " + cmdButton.cmd_string);
             string str2 = "";
             if (cmdButton.cmd_string.Contains("%"))
             {
