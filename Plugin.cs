@@ -28,7 +28,7 @@ namespace DynamicWindows
         public Form pForm;
         public IHost ghost;
         private string configPath;
-        private bool userClosing = false;
+        private bool userClosing = true;
         private string chooseSpell;
 
         public bool Enabled
@@ -185,13 +185,20 @@ namespace DynamicWindows
         {
             if (!this.bPluginEnabled)
                 return;
-
+            //ghost.EchoText("ParseXML XML: " + XML);
             XmlDocument xmlDocument = new XmlDocument();
+            //ghost.EchoText("ParseXML XML: " + xmlDocument);
             xmlDocument.LoadXml("<?xml version='1.0'?><root>" + XML + "</root>");
             foreach (XmlElement xmlElement in xmlDocument.DocumentElement.ChildNodes)
             {
                 switch (xmlElement.Name)
                 {
+                    case "exposeStream":
+                        this.Parse_xml_exposestream(xmlElement);
+                        continue;
+                    case "pushStream":
+                        this.Parse_xml_pushstream(xmlElement);
+                        continue;
                     case "openDialog":
                         this.Parse_xml_openwindow(xmlElement);
                         continue;
@@ -241,6 +248,103 @@ namespace DynamicWindows
         {
             this.SaveConfig();
         }
+
+        private void Parse_xml_streamwindow(XmlElement cbx, SkinnedMDIChild dyndialog)
+        {
+            // Check if the streamWindow element has the required attributes
+            if (!cbx.HasAttribute("width") || !cbx.HasAttribute("height"))
+                return;
+
+            // Check if the stream window is already open
+
+            // With this code:
+            SkinnedMDIChild existingWindow = null;
+            foreach (SkinnedMDIChild window in this.forms)
+            {
+                if (window.Name == cbx.GetAttribute("id"))
+                {
+                    existingWindow = window;
+                    break;
+                }
+            }
+
+            if (existingWindow != null)
+            {
+                // Close the existing window
+                this.forms.Remove(existingWindow);
+                existingWindow.Close();
+            }
+
+            // Create a new SkinnedMDIChild object for the stream window
+            SkinnedMDIChild streamWindow = new SkinnedMDIChild(this.ghost, this);
+            streamWindow.MdiParent = this.pForm;
+            streamWindow.Text = cbx.GetAttribute("title");
+            streamWindow.formBody.ForeColor = this.formfore;
+            streamWindow.formBody.BackColor = this.formback;
+            this.forms.Add(streamWindow);
+            streamWindow.Name = cbx.GetAttribute("id");
+            streamWindow.ClientSize = new Size(int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")) + 22);
+            if (this.positionList.ContainsKey(cbx.GetAttribute("id")))
+                streamWindow.Location = this.positionList[cbx.GetAttribute("id")];
+            streamWindow.formBody.Visible = false;
+            streamWindow.StartPosition = FormStartPosition.CenterScreen;
+
+            // Add a FormClosing event handler
+            streamWindow.FormClosing += Dyndialog_FormClosing;
+
+            // Show the stream window
+            streamWindow.formBody.Visible = true;
+            streamWindow.formBody.AutoScroll = true;
+            if (cbx.HasAttribute("resident") && cbx.GetAttribute("resident").Equals("false") && !cbx.GetAttribute("location").Equals("detach"))
+                return;
+            streamWindow.TopMost = true;
+            streamWindow.ShowForm();
+        }
+
+
+        private void Parse_xml_exposestream(XmlElement elem)
+        {
+            // Find the stream window with the specified id
+            SkinnedMDIChild streamWindow = null;
+            foreach (SkinnedMDIChild window in this.forms)
+            {
+                if (window.Name == elem.GetAttribute("id"))
+                {
+                    streamWindow = window;
+                    break;
+                }
+            }
+
+            // Check if the stream window was found
+            if (streamWindow != null)
+            {
+                // Show the stream window
+                streamWindow.Show();
+            }
+        }
+
+        private void Parse_xml_pushstream(XmlElement elem)
+        {
+            // Find the stream window with the specified id
+            SkinnedMDIChild streamWindow = null;
+            foreach (SkinnedMDIChild window in this.forms)
+            {
+                if (window.Name == elem.GetAttribute("id"))
+                {
+                    streamWindow = window;
+                    break;
+                }
+            }
+
+            // Check if the stream window was found
+            if (streamWindow != null)
+            {
+                // Update the content of the stream window
+                string content = elem.InnerText;
+                streamWindow.Text = content;
+            }
+        }
+
 
         private void Parse_xml_exposewindow(XmlElement elem)
         {
@@ -304,6 +408,9 @@ namespace DynamicWindows
                     case "streamBox":
                         this.Parse_stream_box(cbx, dyndialog);
                         break;
+                    case "streamWindow":
+                        this.Parse_xml_streamwindow(cbx, dyndialog);
+                        continue;
                     case "dropDownBox":
                         this.Parse_drop_down(cbx, dyndialog);
                         break;
@@ -322,6 +429,7 @@ namespace DynamicWindows
             }
             dyndialog.formBody.Visible = true;
             dyndialog.formBody.AutoScroll = true;
+            dyndialog.formBody.AutoSize = true;
             dyndialog.TopMost = true;
             dyndialog.Update();
             dyndialog.ShowForm();
@@ -349,6 +457,7 @@ namespace DynamicWindows
             dyndialog.Text = xelem.GetAttribute("title");
             dyndialog.formBody.ForeColor = this.formfore;
             dyndialog.formBody.BackColor = this.formback;
+            dyndialog.formBody.AutoSize = true;
             this.forms.Add((object)dyndialog);
             dyndialog.Name = xelem.GetAttribute("id");
             dyndialog.ClientSize = new Size(int.Parse(xelem.GetAttribute("width")), int.Parse(xelem.GetAttribute("height")) + 22);
@@ -356,7 +465,6 @@ namespace DynamicWindows
                 dyndialog.Location = this.positionList[xelem.GetAttribute("id")];
             dyndialog.formBody.Visible = false;
             dyndialog.StartPosition = FormStartPosition.CenterScreen;
-            dyndialog.AutoSize = true;
 
             // Add a FormClosing event handler
             dyndialog.FormClosing += Dyndialog_FormClosing;
@@ -411,6 +519,7 @@ namespace DynamicWindows
             if (e.CloseReason == CloseReason.UserClosing)
             {
                 userClosing = true;
+                chooseSpell = null;
             }
         }
 
@@ -607,7 +716,6 @@ namespace DynamicWindows
             }
         }
 
-
         private void Rtb_LinkClicked(object sender, LinkClickedEventArgs e)
         {
             RichTextBox rtb = (RichTextBox)sender;
@@ -713,49 +821,16 @@ namespace DynamicWindows
         private void Parse_close_button(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
             // Create a new closeButton
-            CmdButton closeButton = dyndialog.formBody.Controls.OfType<CmdButton>().FirstOrDefault(b => b.Name == cbx.GetAttribute("id"));
-
-            // Check if the closeButton was found
-            if (closeButton != null)
-            {
-                // Remove the existing closeButton control
-                dyndialog.formBody.Controls.Remove(closeButton);
-            }
-            closeButton = new CmdButton();
+            CmdButton closeButton = new CmdButton();
             closeButton.Name = cbx.GetAttribute("id");
             closeButton.Text = cbx.GetAttribute("value"); // Set the Text property to the value of the value attribute
             closeButton.AutoSize = true;
             closeButton.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            closeButton.cmd_string = "Close";
+            closeButton.cmd_string = !cbx.HasAttribute("cmd") ? "" : cbx.GetAttribute("cmd");
             closeButton.Location = this.Set_location(cbx, (Control)closeButton, dyndialog);
             closeButton.Click += new EventHandler(this.CbClose);
             dyndialog.formBody.Controls.Add((Control)closeButton);
             dyndialog.CloseCommand = (Button)closeButton;
-
-            // Set the value of chooseSpell based on the value of the cmd attribute
-            if (cbx.HasAttribute("cmd"))
-            {
-                chooseSpell = cbx.GetAttribute("cmd");
-                chooseSpell = Regex.Replace(chooseSpell, @"\s{2,}", " ");
-                chooseSpell = chooseSpell.Trim();
-            }
-        }
-
-        private void Spell_Click(object sender, EventArgs e)
-        {
-            // Find the form that contains the spell labels
-            Form form = ((Control)sender).FindForm();
-
-            // Find the close button control
-            Control closeButton = form.Controls.Find("chooseSpell", true).FirstOrDefault();
-
-            // Check if the close button was found
-            if (closeButton != null)
-            {
-                // Update the text of the close button
-                closeButton.Text = "Choose Spellname";
-                ((CmdButton)closeButton).cmd_string = "Choose Spellname Spell";
-            }
         }
 
         private void Parse_drop_down(XmlElement cbx, SkinnedMDIChild dyndialog)
@@ -799,7 +874,8 @@ namespace DynamicWindows
             Label label = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new Label() : (Label)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
             label.Text = cbx.GetAttribute("value");
             label.Name = cbx.GetAttribute("id");
-            label.Size = this.Build_size(cbx, 200, 15);
+            label.AutoSize = true;
+            //label.Size = this.Build_size(cbx, 200, 15);
             //if (!cbx.HasAttribute("width"))
             if (TextRenderer.MeasureText(label.Text, label.Font).Width > 0)
                 label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
@@ -814,6 +890,8 @@ namespace DynamicWindows
             CmdButton cmdButton = (CmdButton)sender;
             Panel panel = (Panel)cmdButton.Parent;
             string str1 = cmdButton.cmd_string;
+            // Add debugging code to print out a message when a button is clicked
+            //ghost.EchoText("Button clicked: " + cmdButton.Name + ", cmd_string: " + cmdButton.cmd_string);
             string str2 = "";
             if (cmdButton.cmd_string.Contains("%"))
             {
@@ -925,6 +1003,24 @@ namespace DynamicWindows
                         }
                     }
                 }
+
+                if (userClosing) 
+                {
+                    this.forms.Remove((object)skinnedMdiChild);
+                    skinnedMdiChild.Close();
+                }
+
+                if (str1.StartsWith("_magic"))
+                {
+                    ghost.SendText(cmdButton.Text + " Spell");
+                }
+
+                // Check if the cmd_string property starts with "profile"
+                if (str1.StartsWith("profile"))
+                {
+                    ghost.SendText(str1);
+                }
+ 
                 if (str2 == "")
                 {
                     this.forms.Remove((object)skinnedMdiChild);
@@ -933,25 +1029,10 @@ namespace DynamicWindows
                 else
                     this.ghost.SendText(str1.Replace(";", "\\;"));
             }
-            if (cmdButton.Tag is bool sendCommand && !sendCommand)
-            {
-                cmdButton.Tag = true;
-                cmdButton.Text = null;
-                return;
-            }
-            // Perform the same actions as the chooseButton.Click event handler
-            // Only send the command if the sender is a CmdButton with Name property set to "send"
-            else if (sender is CmdButton && ((CmdButton)sender).Name == "chooseSpell")
-            {
-                ghost.SendText(chooseSpell);
-                chooseSpell = "";
-            }
 
             this.forms.Remove((object)skinnedMdiChild);
             skinnedMdiChild.Close();
         }
-
-
 
         public void CbRadioSelect(object sender, EventArgs e)
         {
