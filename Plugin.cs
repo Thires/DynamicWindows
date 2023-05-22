@@ -28,7 +28,7 @@ namespace DynamicWindows
         public Form pForm;
         public IHost ghost;
         private string configPath;
-        private bool userClosing = true;
+        private bool userClosing;
         private string chooseSpell;
 
         public bool Enabled
@@ -289,7 +289,7 @@ namespace DynamicWindows
             streamWindow.StartPosition = FormStartPosition.CenterScreen;
 
             // Add a FormClosing event handler
-            streamWindow.FormClosing += Dyndialog_FormClosing;
+            //streamWindow.FormClosing += Dyndialog_FormClosing;
 
             // Show the stream window
             streamWindow.formBody.Visible = true;
@@ -466,7 +466,7 @@ namespace DynamicWindows
             dyndialog.StartPosition = FormStartPosition.CenterScreen;
 
             // Add a FormClosing event handler
-            dyndialog.FormClosing += Dyndialog_FormClosing;
+            //dyndialog.FormClosing += Dyndialog_FormClosing;
             foreach (XmlElement xmlElement in xelem.FirstChild.ChildNodes)
             {
                 switch (xmlElement.Name)
@@ -513,14 +513,7 @@ namespace DynamicWindows
             dyndialog.ShowForm();
         }
 
-        private void Dyndialog_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            if (e.CloseReason == CloseReason.UserClosing)
-            {
-                userClosing = true;
-                chooseSpell = null;
-            }
-        }
+
 
         private void Parse_container(XmlElement elem)
         {
@@ -954,13 +947,20 @@ namespace DynamicWindows
                             continue;
                     }
                 }
-                if (cmdButton.Text.Equals("Clear"))
-                {
-                    this.forms.Remove((object)(Form)((Control)sender).Parent);
-                    ((Form)cmdButton.Parent).Close();
-                }
             }
-            this.ghost.SendText(str1.Replace(";", "\\;"));
+            if (str1.StartsWith("profile"))
+                ghost.SendText(str1);
+            else if (cmdButton.Text.Equals("Update Toggles"))
+                this.ghost.SendText(str1);
+            else if (cmdButton.Text.Equals("Update"))
+                this.ghost.SendText(str1);
+            else if (cmdButton.Text.Equals("Clear"))
+            {
+                this.forms.Remove((object)(Form)((Control)sender).Parent);
+                ((Form)cmdButton.Parent).Close();
+            }
+            else
+                this.ghost.SendText(str1.Replace(";", "\\;"));
         }
 
         public void Cb_SelectedIndexChanged(object sender, EventArgs e)
@@ -1026,25 +1026,13 @@ namespace DynamicWindows
                         }
                     }
                 }
-
-                if (userClosing) 
-                {
-                    this.forms.Remove((object)skinnedMdiChild);
-                    skinnedMdiChild.Close();
-                }
-
-                if (str1.StartsWith("_magic"))
-                {
+                if (cmdButton.Name == "chooseSpell")
                     ghost.SendText(cmdButton.Text + " Spell");
-                }
-
-                // Check if the cmd_string property starts with "profile"
-                if (str1.StartsWith("profile"))
-                {
+                else if (cmdButton.Name == "confirmOK")
+                    ghost.EchoText("sfhjlsdlkfhjsdkfj");
+                else if (str1.StartsWith("profile"))
                     ghost.SendText(str1);
-                }
- 
-                if (str2 == "")
+                else if (str2 == "")
                 {
                     this.forms.Remove((object)skinnedMdiChild);
                     skinnedMdiChild.Close();
