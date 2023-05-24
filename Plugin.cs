@@ -12,6 +12,7 @@ using System.Text.RegularExpressions;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
+using Microsoft.VisualBasic;
 
 namespace DynamicWindows
 {
@@ -185,9 +186,9 @@ namespace DynamicWindows
         {
             if (!this.bPluginEnabled)
                 return;
-
             XmlDocument xmlDocument = new XmlDocument();
             xmlDocument.LoadXml("<?xml version='1.0'?><root>" + XML + "</root>");
+
             foreach (XmlElement xmlElement in xmlDocument.DocumentElement.ChildNodes)
             {
                 switch (xmlElement.Name)
@@ -457,6 +458,7 @@ namespace DynamicWindows
             dyndialog.formBody.ForeColor = this.formfore;
             dyndialog.formBody.BackColor = this.formback;
             dyndialog.formBody.AutoSize = true;
+            dyndialog.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.forms.Add((object)dyndialog);
             dyndialog.Name = xelem.GetAttribute("id");
             dyndialog.ClientSize = new Size(int.Parse(xelem.GetAttribute("width")), int.Parse(xelem.GetAttribute("height")) + 22);
@@ -464,6 +466,8 @@ namespace DynamicWindows
                 dyndialog.Location = this.positionList[xelem.GetAttribute("id")];
             dyndialog.formBody.Visible = false;
             dyndialog.StartPosition = FormStartPosition.CenterScreen;
+            // Add a control box to the window
+            dyndialog.ControlBox = true;
 
             // Add a FormClosing event handler
             //dyndialog.FormClosing += Dyndialog_FormClosing;
@@ -513,8 +517,6 @@ namespace DynamicWindows
             dyndialog.ShowForm();
         }
 
-
-
         private void Parse_container(XmlElement elem)
         {
             if (!this.bStowContainer)
@@ -542,10 +544,10 @@ namespace DynamicWindows
             this.documents.Remove((object)xelem.GetAttribute("id"));
         }
 
-        public void Parse_set_stream(XmlElement xelem)
+        public void Parse_set_stream(XmlElement xmlElement)
         {
-            string id = xelem.GetAttribute("id");
-            string value = xelem.InnerXml;
+            string id = xmlElement.GetAttribute("id");
+            string value = xmlElement.InnerXml;
 
             this.documents[(object)id] = (object)value;
             foreach (SkinnedMDIChild skinnedMdiChild in this.forms)
@@ -554,11 +556,9 @@ namespace DynamicWindows
                 {
                     if (control.Name.Equals(id))
                     {
-                        if (id == "spells")
+                        switch (id)
                         {
-                            // Create a specific element for the "spells" stream
-                            if (id == "spells")
-                            {
+                            case "spells":
                                 // Create a specific element for the "spells" stream
                                 if (control is Panel panel)
                                 {
@@ -576,15 +576,16 @@ namespace DynamicWindows
                                     }
 
                                     int y = panel.Controls[panel.Controls.Count - 1].Bottom + 5;
-                                    if (!xelem.HasChildNodes || xelem.GetElementsByTagName("d").Count == 0)
+                                    if (!xmlElement.HasChildNodes || xmlElement.GetElementsByTagName("d").Count == 0)
                                     {
                                         // Add a label for the spell book name
                                         Label bookLabel = new Label();
-                                        bookLabel.Text = xelem.InnerXml;
+                                        bookLabel.Text = xmlElement.InnerXml;
                                         bookLabel.AutoSize = true;
                                         bookLabel.Location = new Point(0, y);
-                                        bookLabel.Font = new Font(bookLabel.Font, FontStyle.Bold);
-                                        bookLabel.ForeColor = Color.Black;
+                                        //bookLabel.Font = new Font(bookLabel.Font, FontStyle.Regular | FontStyle.Underline);
+                                        bookLabel.Font = new Font(bookLabel.Font.FontFamily, 10, FontStyle.Bold);
+                                        bookLabel.ForeColor = Color.White;
                                         bookLabel.Click -= SpellLabel_Click;
                                         panel.Controls.Add(bookLabel);
 
@@ -593,16 +594,17 @@ namespace DynamicWindows
                                     else
                                     {
                                         // Add labels for the spells
-                                        foreach (XmlNode node in xelem.ChildNodes)
+                                        foreach (XmlNode node in xmlElement.ChildNodes)
                                         {
                                             if (node is XmlElement elem && elem.Name == "d")
                                             {
                                                 Label spellLabel = new Label();
                                                 spellLabel.Text = elem.InnerText;
                                                 spellLabel.AutoSize = true;
-                                                spellLabel.Location = new Point(0, y);
-                                                spellLabel.ForeColor = Color.Blue;
-                                                spellLabel.Font = new Font(spellLabel.Font, FontStyle.Underline);
+                                                spellLabel.Location = new Point(15, y);
+                                                spellLabel.ForeColor = Color.White;
+                                                //spellLabel.Font = new Font(spellLabel.Font, FontStyle.Regular | FontStyle.Underline);
+                                                spellLabel.Font = new Font(spellLabel.Font.FontFamily, 9, FontStyle.Underline);
                                                 spellLabel.Tag = elem.GetAttribute("cmd");
                                                 spellLabel.Click += SpellLabel_Click;
                                                 panel.Controls.Add(spellLabel);
@@ -614,20 +616,23 @@ namespace DynamicWindows
 
                                     panel.ResumeLayout();
                                 }
-                            }
-                        }
-                        else if (id == "spellInfo")
-                        {
-                            // Handle the "spellInfo" stream
-                            if (control is RichTextBox richTextBox)
-                            {
-                                richTextBox.AppendText(xelem.InnerText + Environment.NewLine);
-                            }
-                        }
-                        else
-                        {
-                            value = Regex.Replace(value, "(<pushBold />|<popBold />)", "");
-                            control.Text = value;
+                                break;
+
+                            case "spellInfo":
+                                // Handle the "spellInfo" stream
+                                if (control is RichTextBox richTextBox)
+                                {
+                                    richTextBox.AppendText(xmlElement.InnerText + Environment.NewLine);
+                                    // Update the location of the spellInfo control
+                                    //richTextBox.Location = new Point(255, 40);
+                                }
+                                break;
+
+
+                            default:
+                                value = Regex.Replace(value, "(<pushBold />|<popBold />)", "");
+                                control.Text = value;
+                                break;
                         }
                     }
                 }
@@ -643,6 +648,25 @@ namespace DynamicWindows
             // Find the form that contains the spell labels
             Form form = label.FindForm();
 
+            // Find the "spells" panel control
+            Control spellsPanel = form.Controls.Find("spells", true).FirstOrDefault();
+
+            // Check if the "spells" panel was found
+            if (spellsPanel != null)
+            {
+                // Find all spell labels in the "spells" panel
+                var spellLabels = spellsPanel.Controls.OfType<Label>();
+
+                // Reset the ForeColor of all spell labels to their default color
+                foreach (var spellLabel in spellLabels)
+                {
+                    spellLabel.ForeColor = Color.White;
+                }
+            }
+
+            // Change the ForeColor of the clicked label to the desired color
+            label.ForeColor = Color.Blue;
+
             // Find the choose button control
             Control chooseButton = form.Controls.Find("chooseSpell", true).FirstOrDefault();
 
@@ -655,7 +679,6 @@ namespace DynamicWindows
             }
         }
 
-
         private void Parse_stream_box(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
             if (cbx.GetAttribute("id") == "spells")
@@ -666,9 +689,11 @@ namespace DynamicWindows
                     return;
                 panel.Name = cbx.GetAttribute("id");
                 panel.Size = this.Build_size(cbx, 200, 75);
-                panel.BackColor = Color.White;
+                // Spells background color
+                panel.BackColor = Color.Black;
                 panel.Location = this.Set_location(cbx, (Control)panel, dyndialog);
                 panel.AutoScroll = true;
+                panel.AutoSize = true;
                 dyndialog.formBody.Controls.Add((Control)panel);
 
                 // Add a Label control for each spell
@@ -681,7 +706,7 @@ namespace DynamicWindows
                         spellLabel.Text = elem.InnerText;
                         spellLabel.AutoSize = true;
                         spellLabel.Location = new Point(0, y);
-                        spellLabel.ForeColor = Color.Blue;
+                        spellLabel.ForeColor = Color.White;
                         spellLabel.Font = new Font(spellLabel.Font, FontStyle.Underline);
                         spellLabel.Tag = elem.GetAttribute("cmd");
                         spellLabel.Click += SpellLabel_Click;
@@ -693,31 +718,33 @@ namespace DynamicWindows
             else
             {
                 // Create a RichTextBox control for other streams
-                RichTextBox rtb = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new RichTextBox() : (RichTextBox)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-                if (rtb == null)
+                RichTextBox spellInfo = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new RichTextBox() : (RichTextBox)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
+                if (spellInfo == null)
                     return;
-                rtb.Name = cbx.GetAttribute("id");
-                rtb.Rtf = cbx.GetAttribute("value");
-                rtb.Size = this.Build_size(cbx, 200, 75);
-                rtb.Location = this.Set_location(cbx, (Control)rtb, dyndialog);
-                rtb.Multiline = true;
-                rtb.ScrollBars = RichTextBoxScrollBars.Vertical;
-                rtb.ReadOnly = true;
-                rtb.LinkClicked += Rtb_LinkClicked;
-                rtb.DetectUrls = false;
-                dyndialog.formBody.Controls.Add((Control)rtb);
+                spellInfo.Name = cbx.GetAttribute("id");
+                spellInfo.Rtf = cbx.GetAttribute("value");
+                spellInfo.Size = this.Build_size(cbx, 200, 75);
+                spellInfo.BackColor = Color.Black;
+                spellInfo.ForeColor = Color.White;
+                spellInfo.Location = this.Set_location(cbx, (Control)spellInfo, dyndialog);
+                spellInfo.Multiline = true;
+                spellInfo.ScrollBars = RichTextBoxScrollBars.Vertical;
+                spellInfo.ReadOnly = true;
+                spellInfo.LinkClicked += Rtb_LinkClicked;
+                spellInfo.DetectUrls = false;
+                dyndialog.formBody.Controls.Add((Control)spellInfo);
             }
         }
 
         private void Rtb_LinkClicked(object sender, LinkClickedEventArgs e)
         {
-            RichTextBox rtb = (RichTextBox)sender;
-            Point mousePos = rtb.PointToClient(Cursor.Position);
-            int index = rtb.GetCharIndexFromPosition(mousePos);
+            RichTextBox richTextBox = (RichTextBox)sender;
+            Point mousePos = richTextBox.PointToClient(Cursor.Position);
+            int index = richTextBox.GetCharIndexFromPosition(mousePos);
 
-            int start = rtb.Text.LastIndexOf("<d", index);
-            int end = rtb.Text.IndexOf("</d>", index) + 4;
-            string linkText = rtb.Text.Substring(start, end - start);
+            int start = richTextBox.Text.LastIndexOf("<d", index);
+            int end = richTextBox.Text.IndexOf("</d>", index) + 4;
+            string linkText = richTextBox.Text.Substring(start, end - start);
 
             XmlDocument doc = new XmlDocument();
             doc.LoadXml("<root>" + linkText + "</root>");
@@ -1029,7 +1056,7 @@ namespace DynamicWindows
                 if (cmdButton.Name == "chooseSpell")
                     ghost.SendText(cmdButton.Text + " Spell");
                 else if (cmdButton.Name == "confirmOK")
-                    ghost.EchoText("sfhjlsdlkfhjsdkfj");
+                    ghost.SendText(str1);
                 else if (str1.StartsWith("profile"))
                     ghost.SendText(str1);
                 else if (str2 == "")
@@ -1078,6 +1105,7 @@ namespace DynamicWindows
             int result2 = 0;
             int.TryParse(cbx.GetAttribute("top"), out result2);
             int.TryParse(cbx.GetAttribute("left"), out result1);
+
             if (cbx.HasAttribute("align"))
             {
                 if (cbx.GetAttribute("align").Equals("center"))
