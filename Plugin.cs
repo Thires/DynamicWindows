@@ -262,7 +262,7 @@ namespace DynamicWindows
             }
 
             // Use default values for the width and height if they are not specified in the element
-            int width = elem.HasAttribute("width") ? int.Parse(elem.GetAttribute("width")) : 600;
+            int width = elem.HasAttribute("width") ? int.Parse(elem.GetAttribute("width")) : 375;
             int height = elem.HasAttribute("height") ? int.Parse(elem.GetAttribute("height")) : 300;
 
             // Check if the stream window is already open
@@ -287,7 +287,7 @@ namespace DynamicWindows
             SkinnedMDIChild streamWindow = new SkinnedMDIChild(this.ghost, this);
             streamWindow.MdiParent = this.pForm;
             streamWindow.Text = elem.GetAttribute("title");
-            streamWindow.FormBorderStyle = FormBorderStyle.FixedSingle;
+            streamWindow.FormBorderStyle = FormBorderStyle.Sizable;
             streamWindow.ForeColor = this.formfore;
             streamWindow.formBody.ForeColor = this.formfore;
             streamWindow.Name = elem.GetAttribute("id");
@@ -957,11 +957,20 @@ namespace DynamicWindows
             cmdButton.cmd_string = cbx.GetAttribute("cmd");
             cmdButton.AutoSize = true;
             cmdButton.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-            cmdButton.Location = this.Set_location(cbx, (Control)cmdButton, dyndialog);
+            if (cbx.GetAttribute("id") == "changeCustom" || cbx.GetAttribute("id") == "changeCustomString")
+            {
+                Point location = this.Set_location(cbx, (Control)cmdButton, dyndialog);
+                if (location.X == 353)
+                    location.X += 8;
+                cmdButton.Location = location;
+            }
+            else
+            {
+                cmdButton.Location = this.Set_location(cbx, (Control)cmdButton, dyndialog);
+            }
             cmdButton.Click += new EventHandler(this.CbCommand);
             dyndialog.formBody.Controls.Add((Control)cmdButton);
         }
-
 
         private void Parse_labels(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
@@ -1023,18 +1032,20 @@ namespace DynamicWindows
                             continue;
                     }
                 }
+                if (cmdButton.Text.Equals("Clear"))
+                {
+                    this.forms.Remove((object)(Form)((Control)sender).Parent);
+                    ((Form)cmdButton.Parent).Close();
+                }
+
             }
+
             if (str1.StartsWith("profile"))
                 ghost.SendText(str1);
             else if (cmdButton.Text.Equals("Update Toggles"))
                 this.ghost.SendText(str1);
             else if (cmdButton.Text.Equals("Update"))
                 this.ghost.SendText(str1);
-            else if (cmdButton.Text.Equals("Clear"))
-            {
-                this.forms.Remove((object)(Form)((Control)sender).Parent);
-                ((Form)cmdButton.Parent).Close();
-            }
             else
                 this.ghost.SendText(str1.Replace(";", "\\;"));
         }
