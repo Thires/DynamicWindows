@@ -325,7 +325,8 @@ namespace DynamicWindows
       this._topRightTrans = this.getOpaqueRegion(this._topRight, Color.Magenta);
       this._titleFont = new Font("Microsoft Sans Serif", 8.25f, FontStyle.Regular, GraphicsUnit.Point, (byte) 0);
       int width = TextRenderer.MeasureText(this.Text, this._titleFont).Width;
-      this.Padding = new Padding(this._leftMargin, this._topMargin, this._rightMargin, this._bottomMargin);
+      this.Padding = new Padding(this._leftMargin, 0, this._rightMargin, this._bottomMargin);
+      //this.Padding = new Padding(this._leftMargin, this._topMargin, this._rightMargin, this._bottomMargin);
       this.MinimumSize = new Size(this._topLeft.Width + this._topRight.Width + width, this._topMargin + this._bottomMargin + 1);
       this.SetStyle(ControlStyles.UserPaint | ControlStyles.Opaque | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
     }
@@ -334,7 +335,7 @@ namespace DynamicWindows
     {
       if (this._titleFont == null)
         return;
-      this.MinimumSize = new Size(this._topLeft.Width + this._topRight.Width + TextRenderer.MeasureText(this.Text, this._titleFont).Width, this._topMargin + this._bottomMargin + 1);
+      //this.MinimumSize = new Size(this._topLeft.Width + this._topRight.Width + TextRenderer.MeasureText(this.Text, this._titleFont).Width, this._topMargin + this._bottomMargin + 1);
     }
 
     private void Skinning_MouseDown(object sender, MouseEventArgs e)
@@ -406,7 +407,7 @@ namespace DynamicWindows
       if (this._topLeft != null && this.Dock == DockStyle.None)
       {
         e.Graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
-        e.Graphics.DrawImage((Image) this._topLeft, 0, 0, this._topLeft.Width, this._topLeft.Height);
+        /*e.Graphics.DrawImage((Image) this._topLeft, 0, 0, this._topLeft.Width, this._topLeft.Height);
         int num1 = this.Width - this._topRight.Width;
         int width1 = this._topLeft.Width;
         while (width1 < num1)
@@ -439,7 +440,7 @@ namespace DynamicWindows
           height2 += this._rightSide.Height;
         }
         e.Graphics.DrawImage((Image) this._bottomRight, this.Width - this._bottomRight.Width, this.Height - this._bottomRight.Height, this._bottomRight.Width, this._bottomRight.Height);
-        this.Padding = new Padding(this._leftMargin, this._topMargin, this._rightMargin, this._bottomMargin);
+        this.Padding = new Padding(this._leftMargin, this._topMargin, this._rightMargin, this._bottomMargin);*/
       }
       else if (this.Dock == DockStyle.Left)
       {

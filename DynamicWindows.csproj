@@ -55,6 +55,7 @@
     <Compile Include="cbStreamBox.cs">
       <SubType>Component</SubType>
     </Compile>
+    <Compile Include="helpWindows.cs" />
     <Compile Include="SkinnedMDIChild.cs">
       <SubType>Form</SubType>
     </Compile>

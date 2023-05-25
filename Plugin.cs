@@ -49,7 +49,7 @@ namespace DynamicWindows
 
         public string Name => "Dynamic Windows";
 
-        public string Version => "2.0.0";
+        public string Version => "2.1.0";
 
         public string Author => "Multiple Developers";
 
@@ -193,11 +193,14 @@ namespace DynamicWindows
             {
                 switch (xmlElement.Name)
                 {
-                    case "exposeStream":
-                        this.Parse_xml_exposestream(xmlElement);
-                        continue;
-                    case "pushStream":
-                        this.Parse_xml_pushstream(xmlElement);
+                    //case "exposeStream":
+                    //    this.Parse_xml_exposestream(xmlElement);
+                    //    continue;
+                    //case "pushStream":
+                    //    this.Parse_xml_pushstream(xmlElement);
+                    //    continue;
+                    case "streamWindow":
+                        this.Parse_xml_streamwindow(xmlElement);
                         continue;
                     case "openDialog":
                         this.Parse_xml_openwindow(xmlElement);
@@ -249,19 +252,24 @@ namespace DynamicWindows
             this.SaveConfig();
         }
 
-        private void Parse_xml_streamwindow(XmlElement cbx, SkinnedMDIChild dyndialog)
+        private void Parse_xml_streamwindow(XmlElement elem)
         {
-            // Check if the streamWindow element has the required attributes
-            if (!cbx.HasAttribute("width") || !cbx.HasAttribute("height"))
+
+            // Check if the id attribute is "profileHelp"
+            if (elem.GetAttribute("id") != "profileHelp")
+            {
                 return;
+            }
+
+            // Use default values for the width and height if they are not specified in the element
+            int width = elem.HasAttribute("width") ? int.Parse(elem.GetAttribute("width")) : 600;
+            int height = elem.HasAttribute("height") ? int.Parse(elem.GetAttribute("height")) : 300;
 
             // Check if the stream window is already open
-
-            // With this code:
             SkinnedMDIChild existingWindow = null;
             foreach (SkinnedMDIChild window in this.forms)
             {
-                if (window.Name == cbx.GetAttribute("id"))
+                if (window.Name == elem.GetAttribute("id"))
                 {
                     existingWindow = window;
                     break;
@@ -278,27 +286,68 @@ namespace DynamicWindows
             // Create a new SkinnedMDIChild object for the stream window
             SkinnedMDIChild streamWindow = new SkinnedMDIChild(this.ghost, this);
             streamWindow.MdiParent = this.pForm;
-            streamWindow.Text = cbx.GetAttribute("title");
+            streamWindow.Text = elem.GetAttribute("title");
+            streamWindow.FormBorderStyle = FormBorderStyle.FixedSingle;
+            streamWindow.ForeColor = this.formfore;
             streamWindow.formBody.ForeColor = this.formfore;
-            streamWindow.formBody.BackColor = this.formback;
-            this.forms.Add(streamWindow);
-            streamWindow.Name = cbx.GetAttribute("id");
-            streamWindow.ClientSize = new Size(int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")) + 22);
-            if (this.positionList.ContainsKey(cbx.GetAttribute("id")))
-                streamWindow.Location = this.positionList[cbx.GetAttribute("id")];
-            streamWindow.formBody.Visible = false;
+            streamWindow.Name = elem.GetAttribute("id");
+            streamWindow.ClientSize = new Size(width, height + 22);
+            if (this.positionList.ContainsKey(elem.GetAttribute("id")))
+                streamWindow.Location = this.positionList[elem.GetAttribute("id")];
             streamWindow.StartPosition = FormStartPosition.CenterScreen;
+            streamWindow.AutoSize = true;
+            streamWindow.ControlBox = true; // Show the control box
+            streamWindow.MinimizeBox = false; // Hide the minimize button
+            streamWindow.MaximizeBox = false; // Hide the maximize button
 
-            // Add a FormClosing event handler
-            //streamWindow.FormClosing += Dyndialog_FormClosing;
 
             // Show the stream window
             streamWindow.formBody.Visible = true;
             streamWindow.formBody.AutoScroll = true;
-            if (cbx.HasAttribute("resident") && cbx.GetAttribute("resident").Equals("false") && !cbx.GetAttribute("location").Equals("detach"))
+            streamWindow.formBody.AutoSize = true;
+            if (elem.HasAttribute("resident") && elem.GetAttribute("resident").Equals("false") && !elem.GetAttribute("location").Equals("center"))
                 return;
-            streamWindow.TopMost = true;
+            //streamWindow.TopMost = true;
+            this.forms.Add(streamWindow);
+
+            // Create a new instance of the HelpWindows class
+            helpWindows helpWindows = new helpWindows();
+
+            // Create a new RichTextBox control
+            RichTextBox contentBox = new RichTextBox();
+            contentBox.ForeColor = Color.White;
+            contentBox.BackColor = Color.Black;
+            contentBox.ReadOnly = true;
+            contentBox.BorderStyle = BorderStyle.FixedSingle;
+            if (streamWindow.Text == "Profile RP Help")
+                contentBox.Text = helpWindows.RPHelp;
+            if (streamWindow.Text == "Profile PVP Help")
+                contentBox.Text = helpWindows.PVPHelp;
+            if (streamWindow.Text == "Profile SPOUSE Help")
+                contentBox.Text = helpWindows.SPOUSEHelp;
+            contentBox.Dock = DockStyle.Fill;
+
+            // Add the RichTextBox control to the formBody property of the streamWindow object
+            streamWindow.formBody.Controls.Add(contentBox);
             streamWindow.ShowForm();
+        }
+
+
+        // Define a new method to find a window with a specific name
+        private SkinnedMDIChild FindWindowByName(string name)
+        {
+            // Search for the window in the forms list
+            foreach (SkinnedMDIChild window in this.forms)
+            {
+                if (window.Name == name)
+                {
+                    // Return the window if it is found
+                    return window;
+                }
+            }
+
+            // Return null if the window is not found
+            return null;
         }
 
 
@@ -408,9 +457,6 @@ namespace DynamicWindows
                     case "streamBox":
                         this.Parse_stream_box(cbx, dyndialog);
                         break;
-                    case "streamWindow":
-                        this.Parse_xml_streamwindow(cbx, dyndialog);
-                        continue;
                     case "dropDownBox":
                         this.Parse_drop_down(cbx, dyndialog);
                         break;
@@ -467,7 +513,10 @@ namespace DynamicWindows
             dyndialog.formBody.Visible = false;
             dyndialog.StartPosition = FormStartPosition.CenterScreen;
             // Add a control box to the window
-            dyndialog.ControlBox = true;
+            dyndialog.ControlBox = true; // Show the control box
+            dyndialog.MinimizeBox = false; // Hide the minimize button
+            dyndialog.MaximizeBox = false; // Hide the maximize button
+
 
             // Add a FormClosing event handler
             //dyndialog.FormClosing += Dyndialog_FormClosing;
