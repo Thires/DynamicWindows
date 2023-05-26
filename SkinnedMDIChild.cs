@@ -326,7 +326,6 @@ namespace DynamicWindows
             this._titleFont = new Font("Microsoft Sans Serif", 8.25f, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
             int width = TextRenderer.MeasureText(this.Text, this._titleFont).Width;
             this.Padding = new Padding(this._leftMargin, 0, this._rightMargin, this._bottomMargin);
-            // comment this out
             this.Padding = new Padding(this._leftMargin, this._topMargin, this._rightMargin, this._bottomMargin);
             this.MinimumSize = new Size(this._topLeft.Width + this._topRight.Width + width, this._topMargin + this._bottomMargin + 1);
 
@@ -357,7 +356,6 @@ namespace DynamicWindows
     {
       if (this._titleFont == null)
         return;
-      // comment this out
       this.MinimumSize = new Size(this._topLeft.Width + this._topRight.Width + TextRenderer.MeasureText(this.Text, this._titleFont).Width, this._topMargin + this._bottomMargin + 1);
     }
 
@@ -431,7 +429,6 @@ namespace DynamicWindows
       if (this._topLeft != null && this.Dock == DockStyle.None)
       {
         e.Graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
-        // Start of what to comment out
         e.Graphics.DrawImage((Image) this._topLeft, 0, 0, this._topLeft.Width, this._topLeft.Height);
         int num1 = this.Width - this._topRight.Width;
         int width1 = this._topLeft.Width;
@@ -466,7 +463,6 @@ namespace DynamicWindows
         }
         e.Graphics.DrawImage((Image) this._bottomRight, this.Width - this._bottomRight.Width, this.Height - this._bottomRight.Height, this._bottomRight.Width, this._bottomRight.Height);
         this.Padding = new Padding(this._leftMargin, this._topMargin, this._rightMargin, this._bottomMargin);
-        // End of what to comment out
       }
       else if (this.Dock == DockStyle.Left)
       {
