@@ -13,6 +13,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
 using Microsoft.VisualBasic;
+using Microsoft.VisualBasic.Devices;
 
 namespace DynamicWindows
 {
@@ -254,7 +255,6 @@ namespace DynamicWindows
 
         private void Parse_xml_streamwindow(XmlElement elem)
         {
-
             // Check if the id attribute is "profileHelp"
             if (elem.GetAttribute("id") != "profileHelp")
             {
@@ -263,7 +263,7 @@ namespace DynamicWindows
 
             // Use default values for the width and height if they are not specified in the element
             int width = elem.HasAttribute("width") ? int.Parse(elem.GetAttribute("width")) : 375;
-            int height = elem.HasAttribute("height") ? int.Parse(elem.GetAttribute("height")) : 300;
+            int height = elem.HasAttribute("height") ? int.Parse(elem.GetAttribute("height")) : 350;
 
             // Check if the stream window is already open
             SkinnedMDIChild existingWindow = null;
@@ -287,7 +287,6 @@ namespace DynamicWindows
             SkinnedMDIChild streamWindow = new SkinnedMDIChild(this.ghost, this);
             streamWindow.MdiParent = this.pForm;
             streamWindow.Text = elem.GetAttribute("title");
-            streamWindow.FormBorderStyle = FormBorderStyle.Sizable;
             streamWindow.ForeColor = this.formfore;
             streamWindow.formBody.ForeColor = this.formfore;
             streamWindow.Name = elem.GetAttribute("id");
@@ -295,11 +294,6 @@ namespace DynamicWindows
             if (this.positionList.ContainsKey(elem.GetAttribute("id")))
                 streamWindow.Location = this.positionList[elem.GetAttribute("id")];
             streamWindow.StartPosition = FormStartPosition.CenterScreen;
-            streamWindow.AutoSize = true;
-            streamWindow.ControlBox = true; // Show the control box
-            streamWindow.MinimizeBox = false; // Hide the minimize button
-            streamWindow.MaximizeBox = false; // Hide the maximize button
-
 
             // Show the stream window
             streamWindow.formBody.Visible = true;
@@ -308,7 +302,7 @@ namespace DynamicWindows
             if (elem.HasAttribute("resident") && elem.GetAttribute("resident").Equals("false") && !elem.GetAttribute("location").Equals("center"))
                 return;
             //streamWindow.TopMost = true;
-            this.forms.Add(streamWindow);
+            //this.forms.Add(streamWindow);
 
             // Create a new instance of the HelpWindows class
             helpWindows helpWindows = new helpWindows();
@@ -318,13 +312,15 @@ namespace DynamicWindows
             contentBox.ForeColor = Color.White;
             contentBox.BackColor = Color.Black;
             contentBox.ReadOnly = true;
-            contentBox.BorderStyle = BorderStyle.FixedSingle;
+            contentBox.BorderStyle = BorderStyle.None;
             if (streamWindow.Text == "Profile RP Help")
                 contentBox.Text = helpWindows.RPHelp;
             if (streamWindow.Text == "Profile PVP Help")
                 contentBox.Text = helpWindows.PVPHelp;
             if (streamWindow.Text == "Profile SPOUSE Help")
                 contentBox.Text = helpWindows.SPOUSEHelp;
+            // this removes the window in genie that these create
+            this.ghost.SendText("#window remove profileHelp");
             contentBox.Dock = DockStyle.Fill;
 
             // Add the RichTextBox control to the formBody property of the streamWindow object
@@ -503,23 +499,19 @@ namespace DynamicWindows
             dyndialog.Text = xelem.GetAttribute("title");
             dyndialog.formBody.ForeColor = this.formfore;
             dyndialog.formBody.BackColor = this.formback;
-            dyndialog.formBody.AutoSize = true;
-            dyndialog.FormBorderStyle = FormBorderStyle.FixedSingle;
+            //dyndialog.formBody.AutoSize = true;
+            //dyndialog.FormBorderStyle = FormBorderStyle.FixedSingle;
             this.forms.Add((object)dyndialog);
             dyndialog.Name = xelem.GetAttribute("id");
+            if (xelem.GetAttribute("id") == "spellChoose")
+                dyndialog.ClientSize = new Size(440, 482);
+            else
             dyndialog.ClientSize = new Size(int.Parse(xelem.GetAttribute("width")), int.Parse(xelem.GetAttribute("height")) + 22);
             if (this.positionList.ContainsKey(xelem.GetAttribute("id")))
                 dyndialog.Location = this.positionList[xelem.GetAttribute("id")];
             dyndialog.formBody.Visible = false;
             dyndialog.StartPosition = FormStartPosition.CenterScreen;
-            // Add a control box to the window
-            dyndialog.ControlBox = true; // Show the control box
-            dyndialog.MinimizeBox = false; // Hide the minimize button
-            dyndialog.MaximizeBox = false; // Hide the maximize button
 
-
-            // Add a FormClosing event handler
-            //dyndialog.FormClosing += Dyndialog_FormClosing;
             foreach (XmlElement xmlElement in xelem.FirstChild.ChildNodes)
             {
                 switch (xmlElement.Name)
@@ -616,7 +608,7 @@ namespace DynamicWindows
                                         // Only clear the panel and add the title label when it is first called
                                         panel.Controls.Clear();
                                         panel.SuspendLayout();
-
+                                        panel.Size = this.Build_size(xmlElement, 200, 380);
                                         Label label = new Label();
                                         label.Text = "";
                                         label.AutoSize = true;
@@ -652,7 +644,6 @@ namespace DynamicWindows
                                                 spellLabel.AutoSize = true;
                                                 spellLabel.Location = new Point(15, y);
                                                 spellLabel.ForeColor = Color.White;
-                                                //spellLabel.Font = new Font(spellLabel.Font, FontStyle.Regular | FontStyle.Underline);
                                                 spellLabel.Font = new Font(spellLabel.Font.FontFamily, 9, FontStyle.Underline);
                                                 spellLabel.Tag = elem.GetAttribute("cmd");
                                                 spellLabel.Click += SpellLabel_Click;
@@ -672,8 +663,6 @@ namespace DynamicWindows
                                 if (control is RichTextBox richTextBox)
                                 {
                                     richTextBox.AppendText(xmlElement.InnerText + Environment.NewLine);
-                                    // Update the location of the spellInfo control
-                                    //richTextBox.Location = new Point(255, 40);
                                 }
                                 break;
 
@@ -737,12 +726,12 @@ namespace DynamicWindows
                 if (panel == null)
                     return;
                 panel.Name = cbx.GetAttribute("id");
-                panel.Size = this.Build_size(cbx, 200, 75);
+                panel.Size = this.Build_size(cbx, int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")));
                 // Spells background color
                 panel.BackColor = Color.Black;
                 panel.Location = this.Set_location(cbx, (Control)panel, dyndialog);
                 panel.AutoScroll = true;
-                panel.AutoSize = true;
+                //panel.AutoSize = true;
                 dyndialog.formBody.Controls.Add((Control)panel);
 
                 // Add a Label control for each spell
@@ -772,10 +761,15 @@ namespace DynamicWindows
                     return;
                 spellInfo.Name = cbx.GetAttribute("id");
                 spellInfo.Rtf = cbx.GetAttribute("value");
-                spellInfo.Size = this.Build_size(cbx, 200, 75);
+                spellInfo.Size = this.Build_size(cbx, int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")));
+                //spellInfo.Size = dyndialog.ClientSize = new Size(300, 380);
+                // spell info colors
                 spellInfo.BackColor = Color.Black;
                 spellInfo.ForeColor = Color.White;
                 spellInfo.Location = this.Set_location(cbx, (Control)spellInfo, dyndialog);
+                spellInfo.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+                spellInfo.Left -= 75;
+                spellInfo.BorderStyle = BorderStyle.None;
                 spellInfo.Multiline = true;
                 spellInfo.ScrollBars = RichTextBoxScrollBars.Vertical;
                 spellInfo.ReadOnly = true;

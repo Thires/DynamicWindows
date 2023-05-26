@@ -306,37 +306,61 @@ namespace DynamicWindows
       return region;
     }
 
-    private void Skinning_Load(object sender, EventArgs e)
-    {
-      this._topLeft = Resources.skin_topleft;
-      this._topRight = Resources.skin_topright;
-      this._topMiddle = Resources.skin_top;
-      this._topMargin = this._topMiddle.Height;
-      this._leftSide = Resources.skin_left;
-      this._leftMargin = this._leftSide.Width;
-      this._rightSide = Resources.skin_right;
-      this._rightMargin = this._rightSide.Width;
-      this._bottomMiddle = Resources.skin_bottom;
-      this._bottomMargin = this._bottomMiddle.Height;
-      this._topBorder = this._bottomMargin;
-      this._bottomLeft = Resources.skin_bottomleft;
-      this._bottomRight = Resources.skin_bottomright;
-      this._topLeftTrans = this.getOpaqueRegion(this._topLeft, Color.Magenta);
-      this._topRightTrans = this.getOpaqueRegion(this._topRight, Color.Magenta);
-      this._titleFont = new Font("Microsoft Sans Serif", 8.25f, FontStyle.Regular, GraphicsUnit.Point, (byte) 0);
-      int width = TextRenderer.MeasureText(this.Text, this._titleFont).Width;
-      this.Padding = new Padding(this._leftMargin, 0, this._rightMargin, this._bottomMargin);
-      //this.Padding = new Padding(this._leftMargin, this._topMargin, this._rightMargin, this._bottomMargin);
-      this.MinimumSize = new Size(this._topLeft.Width + this._topRight.Width + width, this._topMargin + this._bottomMargin + 1);
-      this.SetStyle(ControlStyles.UserPaint | ControlStyles.Opaque | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
-    }
+        private void Skinning_Load(object sender, EventArgs e)
+        {
+            this._topLeft = Resources.skin_topleft;
+            this._topRight = Resources.skin_topright;
+            this._topMiddle = Resources.skin_top;
+            this._topMargin = this._topMiddle.Height;
+            this._leftSide = Resources.skin_left;
+            this._leftMargin = this._leftSide.Width;
+            this._rightSide = Resources.skin_right;
+            this._rightMargin = this._rightSide.Width;
+            this._bottomMiddle = Resources.skin_bottom;
+            this._bottomMargin = this._bottomMiddle.Height;
+            this._topBorder = this._bottomMargin;
+            this._bottomLeft = Resources.skin_bottomleft;
+            this._bottomRight = Resources.skin_bottomright;
+            this._topLeftTrans = this.getOpaqueRegion(this._topLeft, Color.Magenta);
+            this._topRightTrans = this.getOpaqueRegion(this._topRight, Color.Magenta);
+            this._titleFont = new Font("Microsoft Sans Serif", 8.25f, FontStyle.Regular, GraphicsUnit.Point, (byte)0);
+            int width = TextRenderer.MeasureText(this.Text, this._titleFont).Width;
+            this.Padding = new Padding(this._leftMargin, 0, this._rightMargin, this._bottomMargin);
+            // comment this out
+            this.Padding = new Padding(this._leftMargin, this._topMargin, this._rightMargin, this._bottomMargin);
+            this.MinimumSize = new Size(this._topLeft.Width + this._topRight.Width + width, this._topMargin + this._bottomMargin + 1);
+
+            // Create the close button
+            Button closeButton = new Button();
+            closeButton.Text = "X";
+            closeButton.Size = new Size(20, 20);
+            closeButton.Font = new Font("Microsoft Sans Serif", 8.25f, FontStyle.Bold);
+            closeButton.ForeColor = Color.Black;
+            closeButton.Location = new Point(this.Width - closeButton.Width - -1, -1);
+            //closeButton.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+            closeButton.Click += (s, args) => this.Close();
+            this.Controls.Add(closeButton);
+
+            // Update the close button location when the form is resized
+            this.Resize += (s, args) =>
+            {
+                closeButton.Location = new Point(this.Width - closeButton.Width - -1, -1);
+                //closeButton.Visible = true;
+                //closeButton.BringToFront();
+            };
+
+            this.SetStyle(ControlStyles.UserPaint | ControlStyles.Opaque | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer, true);
+        }
+
 
     private void Skinning_TextChanged(object sender, EventArgs e)
     {
       if (this._titleFont == null)
         return;
-      //this.MinimumSize = new Size(this._topLeft.Width + this._topRight.Width + TextRenderer.MeasureText(this.Text, this._titleFont).Width, this._topMargin + this._bottomMargin + 1);
+      // comment this out
+      this.MinimumSize = new Size(this._topLeft.Width + this._topRight.Width + TextRenderer.MeasureText(this.Text, this._titleFont).Width, this._topMargin + this._bottomMargin + 1);
     }
+
 
     private void Skinning_MouseDown(object sender, MouseEventArgs e)
     {
@@ -407,7 +431,8 @@ namespace DynamicWindows
       if (this._topLeft != null && this.Dock == DockStyle.None)
       {
         e.Graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
-        /*e.Graphics.DrawImage((Image) this._topLeft, 0, 0, this._topLeft.Width, this._topLeft.Height);
+        // Start of what to comment out
+        e.Graphics.DrawImage((Image) this._topLeft, 0, 0, this._topLeft.Width, this._topLeft.Height);
         int num1 = this.Width - this._topRight.Width;
         int width1 = this._topLeft.Width;
         while (width1 < num1)
@@ -440,7 +465,8 @@ namespace DynamicWindows
           height2 += this._rightSide.Height;
         }
         e.Graphics.DrawImage((Image) this._bottomRight, this.Width - this._bottomRight.Width, this.Height - this._bottomRight.Height, this._bottomRight.Width, this._bottomRight.Height);
-        this.Padding = new Padding(this._leftMargin, this._topMargin, this._rightMargin, this._bottomMargin);*/
+        this.Padding = new Padding(this._leftMargin, this._topMargin, this._rightMargin, this._bottomMargin);
+        // End of what to comment out
       }
       else if (this.Dock == DockStyle.Left)
       {
