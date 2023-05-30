@@ -653,7 +653,6 @@ namespace DynamicWindows
                                             }
                                         }
                                     }
-
                                     panel.ResumeLayout();
                                 }
                                 break;
@@ -666,10 +665,19 @@ namespace DynamicWindows
                                 }
                                 break;
 
-
                             default:
                                 value = Regex.Replace(value, "(<pushBold />|<popBold />)", "");
-                                control.Text = value;
+                                //control.Text = value;
+
+                                string attribute = xmlElement.GetAttribute("id");
+                                string innerText = xmlElement.InnerText;
+                                this.documents[(object)attribute] = (object)innerText;
+                                foreach (Control control1 in (ArrangedElementCollection)skinnedMdiChild.formBody.Controls)
+                                {
+                                    if (control1.Name.Equals(attribute))
+                                        control1.Text = innerText;
+                                }
+
                                 break;
                         }
                     }
@@ -719,63 +727,77 @@ namespace DynamicWindows
 
         private void Parse_stream_box(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
-            if (cbx.GetAttribute("id") == "spells")
+            string id = cbx.GetAttribute("id");
+            switch (id)
             {
-                // Create a Panel control for the "spells" stream
-                Panel panel = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new Panel() : (Panel)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-                if (panel == null)
-                    return;
-                panel.Name = cbx.GetAttribute("id");
-                panel.Size = this.Build_size(cbx, int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")));
-                // Spells background color
-                panel.BackColor = Color.Black;
-                panel.Location = this.Set_location(cbx, (Control)panel, dyndialog);
-                panel.AutoScroll = true;
-                //panel.AutoSize = true;
-                dyndialog.formBody.Controls.Add((Control)panel);
+                case "spells":
+                    // Create a Panel control for the "spells" stream
+                    Panel panel = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new Panel() : (Panel)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
+                    if (panel == null)
+                        return;
+                    panel.Name = cbx.GetAttribute("id");
+                    panel.Size = Build_size(cbx, int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")));
+                    // Spells background color
+                    panel.BackColor = Color.Black;
+                    panel.Location = Set_location(cbx, (Control)panel, dyndialog);
+                    panel.AutoScroll = true;
+                    //panel.AutoSize = true;
+                    dyndialog.formBody.Controls.Add((Control)panel);
 
-                // Add a Label control for each spell
-                int y = 0;
-                foreach (XmlNode node in cbx.ChildNodes)
-                {
-                    if (node is XmlElement elem && elem.Name == "d")
+                    // Add a Label control for each spell
+                    int y = 0;
+                    foreach (XmlNode node in cbx.ChildNodes)
                     {
-                        Label spellLabel = new Label();
-                        spellLabel.Text = elem.InnerText;
-                        spellLabel.AutoSize = true;
-                        spellLabel.Location = new Point(0, y);
-                        spellLabel.ForeColor = Color.White;
-                        spellLabel.Font = new Font(spellLabel.Font, FontStyle.Underline);
-                        spellLabel.Tag = elem.GetAttribute("cmd");
-                        spellLabel.Click += SpellLabel_Click;
-                        panel.Controls.Add(spellLabel);
-                        y += spellLabel.Height + 5;
+                        if (node is XmlElement elem && elem.Name == "d")
+                        {
+                            Label spellLabel = new Label();
+                            spellLabel.Text = elem.InnerText;
+                            spellLabel.AutoSize = true;
+                            spellLabel.Location = new Point(0, y);
+                            spellLabel.ForeColor = Color.White;
+                            spellLabel.Font = new Font(spellLabel.Font, FontStyle.Underline);
+                            spellLabel.Tag = elem.GetAttribute("cmd");
+                            spellLabel.Click += SpellLabel_Click;
+                            panel.Controls.Add(spellLabel);
+                            y += spellLabel.Height + 5;
+                        }
                     }
-                }
-            }
-            else
-            {
-                // Create a RichTextBox control for other streams
-                RichTextBox spellInfo = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new RichTextBox() : (RichTextBox)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-                if (spellInfo == null)
-                    return;
-                spellInfo.Name = cbx.GetAttribute("id");
-                spellInfo.Rtf = cbx.GetAttribute("value");
-                spellInfo.Size = this.Build_size(cbx, int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")));
-                //spellInfo.Size = dyndialog.ClientSize = new Size(300, 380);
-                // spell info colors
-                spellInfo.BackColor = Color.Black;
-                spellInfo.ForeColor = Color.White;
-                spellInfo.Location = this.Set_location(cbx, (Control)spellInfo, dyndialog);
-                spellInfo.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-                spellInfo.Left -= 75;
-                spellInfo.BorderStyle = BorderStyle.None;
-                spellInfo.Multiline = true;
-                spellInfo.ScrollBars = RichTextBoxScrollBars.Vertical;
-                spellInfo.ReadOnly = true;
-                spellInfo.LinkClicked += Rtb_LinkClicked;
-                spellInfo.DetectUrls = false;
-                dyndialog.formBody.Controls.Add((Control)spellInfo);
+                    break;
+                case "spellInfo":
+                    // Create a RichTextBox control for other streams
+                    RichTextBox spellInfo = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new RichTextBox() : (RichTextBox)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
+                    if (spellInfo == null)
+                        return;
+                    spellInfo.Name = cbx.GetAttribute("id");
+                    spellInfo.Rtf = cbx.GetAttribute("value");
+                    spellInfo.Size = Build_size(cbx, int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")));
+                    //spellInfo.Size = dyndialog.ClientSize = new Size(300, 380);
+                    // spell info colors
+                    spellInfo.BackColor = Color.Black;
+                    spellInfo.ForeColor = Color.White;
+                    spellInfo.Location = Set_location(cbx, (Control)spellInfo, dyndialog);
+                    spellInfo.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+                    spellInfo.Left -= 75;
+                    spellInfo.BorderStyle = BorderStyle.None;
+                    spellInfo.Multiline = true;
+                    spellInfo.ScrollBars = RichTextBoxScrollBars.Vertical;
+                    spellInfo.ReadOnly = true;
+                    spellInfo.LinkClicked += Rtb_LinkClicked;
+                    spellInfo.DetectUrls = false;
+                    dyndialog.formBody.Controls.Add((Control)spellInfo);
+                    break;
+                default:
+                    TextBox textBox = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new TextBox() : (TextBox)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
+                    if (textBox == null)
+                        return;
+                    textBox.Name = cbx.GetAttribute("id");
+                    textBox.Text = cbx.GetAttribute("value");
+                    textBox.Size = this.Build_size(cbx, 200, 75);
+                    textBox.Location = this.Set_location(cbx, (Control)textBox, dyndialog);
+                    textBox.Multiline = true;
+                    textBox.ScrollBars = ScrollBars.Vertical;
+                    dyndialog.formBody.Controls.Add((Control)textBox);
+                    break;
             }
         }
 
