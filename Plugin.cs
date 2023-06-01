@@ -6,14 +6,8 @@ using System.Drawing;
 using System.Windows.Forms;
 using System.Windows.Forms.Layout;
 using System.Xml;
-using System.Xml.Serialization;
 using System.Linq;
 using System.Text.RegularExpressions;
-using System.Diagnostics;
-using System.Runtime.InteropServices;
-using static System.Windows.Forms.VisualStyles.VisualStyleElement.Window;
-using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.Devices;
 
 namespace DynamicWindows
 {
@@ -50,7 +44,7 @@ namespace DynamicWindows
 
         public string Name => "Dynamic Windows";
 
-        public string Version => "2.1.1";
+        public string Version => "2.1.2";
 
         public string Author => "Multiple Developers";
 
@@ -189,7 +183,6 @@ namespace DynamicWindows
                 return;
             XmlDocument xmlDocument = new XmlDocument();
             xmlDocument.LoadXml("<?xml version='1.0'?><root>" + XML + "</root>");
-
             foreach (XmlElement xmlElement in xmlDocument.DocumentElement.ChildNodes)
             {
                 switch (xmlElement.Name)
@@ -307,8 +300,8 @@ namespace DynamicWindows
 
             // Create a new RichTextBox control
             RichTextBox contentBox = new RichTextBox();
-            contentBox.ForeColor = Color.White;
-            contentBox.BackColor = Color.Black;
+            contentBox.ForeColor = this.formfore;
+            contentBox.BackColor = this.formback;
             contentBox.ReadOnly = true;
             contentBox.BorderStyle = BorderStyle.None;
             if (streamWindow.Text == "Profile RP Help")
@@ -611,7 +604,7 @@ namespace DynamicWindows
                                         //panel.Size = this.Build_size(xmlElement, 200, 380);
                                         panel.Height = 380;
                                         panel.Width = 200;
-                                        panel.BackColor = Color.Black;
+                                        panel.BackColor = this.formback;
                                         Label label = new Label();
                                         label.Text = "";
                                         label.AutoSize = true;
@@ -629,7 +622,7 @@ namespace DynamicWindows
                                         bookLabel.Location = new Point(0, y);
                                         //bookLabel.Font = new Font(bookLabel.Font, FontStyle.Regular | FontStyle.Underline);
                                         bookLabel.Font = new Font(bookLabel.Font.FontFamily, 10, FontStyle.Bold);
-                                        bookLabel.ForeColor = Color.White;
+                                        bookLabel.ForeColor = this.formfore;
                                         bookLabel.Click -= SpellLabel_Click;
                                         panel.Controls.Add(bookLabel);
 
@@ -646,7 +639,7 @@ namespace DynamicWindows
                                                 spellLabel.Text = elem.InnerText;
                                                 spellLabel.AutoSize = true;
                                                 spellLabel.Location = new Point(15, y);
-                                                spellLabel.ForeColor = Color.White;
+                                                spellLabel.ForeColor = this.formfore;
                                                 spellLabel.Font = new Font(spellLabel.Font.FontFamily, 9, FontStyle.Underline);
                                                 spellLabel.Tag = elem.GetAttribute("cmd");
                                                 spellLabel.Click += SpellLabel_Click;
@@ -667,7 +660,7 @@ namespace DynamicWindows
                                     spellInfoBox.AppendText(xmlElement.InnerText + Environment.NewLine);
                                     spellInfoBox.Width = 250;
                                     spellInfoBox.Location = new Point(215, 40);
-                                    spellInfoBox.BackColor = Color.Black;
+                                    spellInfoBox.BackColor = this.formback;
                                 }
                                 break;
 
@@ -711,7 +704,7 @@ namespace DynamicWindows
                 // Reset the ForeColor of all spell labels to their default color
                 foreach (var spellLabel in spellLabels)
                 {
-                    spellLabel.ForeColor = Color.White;
+                    spellLabel.ForeColor = this.formfore;
                 }
             }
 
@@ -743,7 +736,7 @@ namespace DynamicWindows
                     panel.Name = cbx.GetAttribute("id");
                     panel.Size = Build_size(cbx, int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")));
                     // Spells background color
-                    panel.BackColor = Color.Black;
+                    panel.BackColor = this.formback;
                     panel.Location = Set_location(cbx, (Control)panel, dyndialog);
                     panel.AutoScroll = true;
                     //panel.AutoSize = true;
@@ -759,7 +752,7 @@ namespace DynamicWindows
                             spellLabel.Text = elem.InnerText;
                             spellLabel.AutoSize = true;
                             spellLabel.Location = new Point(0, y);
-                            spellLabel.ForeColor = Color.White;
+                            spellLabel.ForeColor = this.formfore;
                             spellLabel.Font = new Font(spellLabel.Font, FontStyle.Underline);
                             spellLabel.Tag = elem.GetAttribute("cmd");
                             spellLabel.Click += SpellLabel_Click;
@@ -778,8 +771,8 @@ namespace DynamicWindows
                     //spellInfo.Size = Build_size(cbx, int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")));
                     //spellInfo.Size = dyndialog.ClientSize = new Size(300, 380);
                     // spell info colors
-                    spellInfo.BackColor = Color.Black;
-                    spellInfo.ForeColor = Color.White;
+                    spellInfo.BackColor = this.formback;
+                    spellInfo.ForeColor = this.formfore;
                     //spellInfo.Location = Set_location(cbx, (Control)spellInfo, dyndialog);
                     spellInfo.Width = 300;
                     spellInfo.Height = 380;
@@ -1005,7 +998,25 @@ namespace DynamicWindows
             //if (!cbx.HasAttribute("width"))
             if (TextRenderer.MeasureText(label.Text, label.Font).Width > 0)
                 label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
-            label.Location = this.Set_location(cbx, (Control)label, dyndialog);
+            SkinnedMDIChild window = FindWindowByName("bugDialogBox");
+            // Update or refresh the window
+            if (window != null)
+            {
+                switch (cbx.GetAttribute("id"))
+                {
+                    case "categoryLabel":
+                        label.Location = new Point(30, 75);
+                        break;
+                    case "titleLabel":
+                        label.Location = new Point(30, 105);
+                        break;
+                    case "detailsLabel":
+                        label.Location = new Point(30, 135);
+                        break;
+                }
+            }
+            else
+                label.Location = this.Set_location(cbx, (Control)label, dyndialog);
             if (dyndialog.formBody.Controls.Contains((Control)label))
                 return;
             dyndialog.formBody.Controls.Add((Control)label);
@@ -1063,12 +1074,10 @@ namespace DynamicWindows
 
             }
 
-            if (str1.StartsWith("profile"))
+            if (cmdButton.Text == "Update Toggles")
+                ghost.SendText(str1);   
+            else if (str1.Contains("profile /set"))
                 ghost.SendText(str1);
-            else if (cmdButton.Text.Equals("Update Toggles"))
-                this.ghost.SendText(str1);
-            else if (cmdButton.Text.Equals("Update"))
-                this.ghost.SendText(str1);
             else
                 this.ghost.SendText(str1.Replace(";", "\\;"));
         }
@@ -1139,8 +1148,6 @@ namespace DynamicWindows
                 if (cmdButton.Name == "chooseSpell")
                     ghost.SendText(cmdButton.Text + " Spell");
                 else if (cmdButton.Name == "confirmOK")
-                    ghost.SendText(str1);
-                else if (str1.StartsWith("profile"))
                     ghost.SendText(str1);
                 else if (str2 == "")
                 {
