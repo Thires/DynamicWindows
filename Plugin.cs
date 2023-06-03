@@ -44,7 +44,7 @@ namespace DynamicWindows
 
         public string Name => "Dynamic Windows";
 
-        public string Version => "2.1.2";
+        public string Version => "2.1.4";
 
         public string Author => "Multiple Developers";
 
@@ -845,12 +845,60 @@ namespace DynamicWindows
                 return;
             textBox.Name = cbx.GetAttribute("id");
             textBox.Text = cbx.GetAttribute("value");
+            SkinnedMDIChild window = FindWindowByName("bugDialogBox");
+            if (window != null)
+            {
+                textBox.TextChanged += (sender, e) => textBox_TextChanged(sender, e, dyndialog);
+            }
             textBox.Size = this.Build_size(cbx, 200, 75);
             textBox.Location = this.Set_location(cbx, (Control)textBox, dyndialog);
-            if (cbx.HasAttribute("MaxChars"))
-                textBox.MaxLength = int.Parse(cbx.GetAttribute("MaxChars"));
+            if (cbx.HasAttribute("maxChars"))
+                textBox.MaxLength = int.Parse(cbx.GetAttribute("maxChars"));
             textBox.Multiline = false;
+            textBox.WordWrap = true;
             dyndialog.formBody.Controls.Add((Control)textBox);
+        }
+
+        private void textBox_TextChanged(object sender, EventArgs e, SkinnedMDIChild dyndialog)
+        {
+            SkinnedMDIChild window = FindWindowByName("bugDialogBox");
+            if (window != null)
+            {
+                // Get a reference to the TextBox control
+                TextBox textBox = sender as TextBox;
+
+                // Calculate the current character count
+                int charCount = textBox.Text.Length;
+
+                // Find the Label control that corresponds to the TextBox control
+                Label label;
+                int maxChars;
+                string labelText;
+                if (textBox.Name == "title")
+                {
+                    label = dyndialog.formBody.Controls["titleLabel"] as Label;
+                    label.Location = new Point(0, 105);
+                    maxChars = 128;
+                    labelText = "Title";
+                }
+                else if (textBox.Name == "details")
+                {
+                    label = dyndialog.formBody.Controls["detailsLabel"] as Label;
+                    label.Location = new Point(0, 135);
+                    maxChars = 875;
+                    labelText = "Details";
+                }
+                else
+                {
+                    return;
+                }
+
+                // Update the label with the current character count and maximum character count
+                label.Text = $"{labelText} {charCount}/{maxChars}";
+                label.AutoSize = true;
+                // Add the Label control to the form
+                dyndialog.formBody.Controls.Add(label);
+            }
         }
 
         private void Parse_check_box(XmlElement cbx, SkinnedMDIChild dyndialog)
@@ -999,7 +1047,6 @@ namespace DynamicWindows
             if (TextRenderer.MeasureText(label.Text, label.Font).Width > 0)
                 label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
             SkinnedMDIChild window = FindWindowByName("bugDialogBox");
-            // Update or refresh the window
             if (window != null)
             {
                 switch (cbx.GetAttribute("id"))
@@ -1071,11 +1118,12 @@ namespace DynamicWindows
                     this.forms.Remove((object)(Form)((Control)sender).Parent);
                     ((Form)cmdButton.Parent).Close();
                 }
-
             }
-
+            ghost.EchoText(str1);
             if (cmdButton.Text == "Update Toggles")
-                ghost.SendText(str1);   
+            {
+                ghost.SendText(str1);
+            }     
             else if (str1.Contains("profile /set"))
                 ghost.SendText(str1);
             else
