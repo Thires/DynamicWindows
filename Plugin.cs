@@ -8,6 +8,7 @@ using System.Windows.Forms.Layout;
 using System.Xml;
 using System.Linq;
 using System.Text.RegularExpressions;
+using Microsoft.VisualBasic.Devices;
 
 namespace DynamicWindows
 {
@@ -24,8 +25,6 @@ namespace DynamicWindows
         public Form pForm;
         public IHost ghost;
         private string configPath;
-        private bool userClosing;
-        private string chooseSpell;
 
         public bool Enabled
         {
@@ -44,7 +43,7 @@ namespace DynamicWindows
 
         public string Name => "Dynamic Windows";
 
-        public string Version => "2.1.4";
+        public string Version => "2.1.5";
 
         public string Author => "Multiple Developers";
 
@@ -129,14 +128,12 @@ namespace DynamicWindows
                     this.formback = ColorTranslator.FromHtml(xmlElement.GetAttribute("color"));
                 else if (xmlElement.GetAttribute("id") == "stowcontainer")
                 {
-                    bool result = false;
-                    bool.TryParse(xmlElement.GetAttribute("enabled"), out result);
+                    bool.TryParse(xmlElement.GetAttribute("enabled"), out bool result);
                     this.bStowContainer = result;
                 }
                 else if (xmlElement.GetAttribute("id") == "plugin")
                 {
-                    bool result = false;
-                    bool.TryParse(xmlElement.GetAttribute("pluginenabled"), out result);
+                    bool.TryParse(xmlElement.GetAttribute("pluginenabled"), out bool result);
                     this.bPluginEnabled = result;
                 }
             }
@@ -193,6 +190,9 @@ namespace DynamicWindows
                     //case "pushStream":
                     //    this.Parse_xml_pushstream(xmlElement);
                     //    continue;
+                    //case "popStream":
+                    //    this.Parse_xml_popStream(xmlElement);
+                    //    continue;
                     case "streamWindow":
                         this.Parse_xml_streamwindow(xmlElement);
                         continue;
@@ -231,9 +231,11 @@ namespace DynamicWindows
 
         public void Show()
         {
-            FormOptionWindow formOptionWindow = new FormOptionWindow(this);
-            formOptionWindow.MdiParent = this.pForm;
-            formOptionWindow.TopMost = true;
+            FormOptionWindow formOptionWindow = new FormOptionWindow(this)
+            {
+                MdiParent = this.pForm,
+                TopMost = true
+            };
             ((Control)formOptionWindow).Show();
         }
 
@@ -250,9 +252,7 @@ namespace DynamicWindows
         {
             // Check if the id attribute is "profileHelp"
             if (elem.GetAttribute("id") != "profileHelp")
-            {
                 return;
-            }
 
             // Use default values for the width and height if they are not specified in the element
             int width = elem.HasAttribute("width") ? int.Parse(elem.GetAttribute("width")) : 375;
@@ -277,10 +277,12 @@ namespace DynamicWindows
             }
 
             // Create a new SkinnedMDIChild object for the stream window
-            SkinnedMDIChild streamWindow = new SkinnedMDIChild(this.ghost, this);
-            streamWindow.MdiParent = this.pForm;
-            streamWindow.Text = elem.GetAttribute("title");
-            streamWindow.ForeColor = this.formfore;
+            SkinnedMDIChild streamWindow = new SkinnedMDIChild(this.ghost, this)
+            {
+                MdiParent = this.pForm,
+                Text = elem.GetAttribute("title"),
+                ForeColor = this.formfore
+            };
             streamWindow.formBody.ForeColor = this.formfore;
             streamWindow.Name = elem.GetAttribute("id");
             streamWindow.ClientSize = new Size(width, height + 22);
@@ -299,11 +301,13 @@ namespace DynamicWindows
             helpWindows helpWindows = new helpWindows();
 
             // Create a new RichTextBox control
-            RichTextBox contentBox = new RichTextBox();
-            contentBox.ForeColor = this.formfore;
-            contentBox.BackColor = this.formback;
-            contentBox.ReadOnly = true;
-            contentBox.BorderStyle = BorderStyle.None;
+            RichTextBox contentBox = new RichTextBox
+            {
+                ForeColor = this.formfore,
+                BackColor = this.formback,
+                ReadOnly = true,
+                BorderStyle = BorderStyle.None
+            };
             if (streamWindow.Text == "Profile RP Help")
                 contentBox.Text = helpWindows.RPHelp;
             if (streamWindow.Text == "Profile PVP Help")
@@ -337,6 +341,22 @@ namespace DynamicWindows
             return null;
         }
 
+        // Define a new method to find a window with a specific name
+        private SkinnedMDIChild FindLabelByName(string name)
+        {
+            // Search for the window in the forms list
+            foreach (SkinnedMDIChild label in this.forms)
+            {
+                if (label.Name == name)
+                {
+                    // Return the window if it is found
+                    return label;
+                }
+            }
+
+            // Return null if the window is not found
+            return null;
+        }
 
         private void Parse_xml_exposestream(XmlElement elem)
         {
@@ -352,11 +372,8 @@ namespace DynamicWindows
             }
 
             // Check if the stream window was found
-            if (streamWindow != null)
-            {
-                // Show the stream window
-                streamWindow.Show();
-            }
+            // Show the stream window
+            streamWindow?.Show();
         }
 
         private void Parse_xml_pushstream(XmlElement elem)
@@ -386,8 +403,6 @@ namespace DynamicWindows
         {
             foreach (SkinnedMDIChild skinnedMdiChild in this.forms)
             {
-                string attribute = elem.GetAttribute("id");
-                string innerText = elem.InnerText;
                 if (skinnedMdiChild.Name.Equals(elem.GetAttribute("id")))
                 {
                     skinnedMdiChild.TopMost = true;
@@ -428,36 +443,36 @@ namespace DynamicWindows
                 {
                     case "label":
                         this.Parse_labels(cbx, dyndialog);
-                        break;
+                        continue;
                     case "cmdButton":
                         this.Parse_command_buttons(cbx, dyndialog);
-                        break;
+                        continue;
                     case "closeButton":
                         this.Parse_close_button(cbx, dyndialog);
-                        break;
+                        continue;
                     case "checkBox":
                         this.Parse_check_box(cbx, dyndialog);
-                        break;
+                        continue;
                     case "radio":
                         this.Parse_radio_button(cbx, dyndialog);
-                        break;
+                        continue;
                     case "streamBox":
                         this.Parse_stream_box(cbx, dyndialog);
-                        break;
+                        continue;
                     case "dropDownBox":
                         this.Parse_drop_down(cbx, dyndialog);
-                        break;
+                        continue;
                     case "upDownEditBox":
                         this.Parse_numericupdown(cbx, dyndialog);
-                        break;
+                        continue;
                     case "editBox":
                         this.Parse_edit_box(cbx, dyndialog);
-                        break;
+                        continue;
                     case "progressBar":
                         this.Parse_progress_bar(cbx, dyndialog);
-                        break;
+                        continue;
                     default:
-                        break;
+                        continue;
                 }
             }
             dyndialog.formBody.Visible = true;
@@ -485,9 +500,11 @@ namespace DynamicWindows
                 this.forms.Remove((object)skinnedMdiChild1);
                 skinnedMdiChild1.Close();
             }
-            SkinnedMDIChild dyndialog = new SkinnedMDIChild(this.ghost, this);
-            dyndialog.MdiParent = this.pForm;
-            dyndialog.Text = xelem.GetAttribute("title");
+            SkinnedMDIChild dyndialog = new SkinnedMDIChild(this.ghost, this)
+            {
+                MdiParent = this.pForm,
+                Text = xelem.GetAttribute("title")
+            };
             dyndialog.formBody.ForeColor = this.formfore;
             dyndialog.formBody.BackColor = this.formback;
             dyndialog.formBody.AutoSize = false;
@@ -605,10 +622,12 @@ namespace DynamicWindows
                                         panel.Height = 380;
                                         panel.Width = 200;
                                         panel.BackColor = this.formback;
-                                        Label label = new Label();
-                                        label.Text = "";
-                                        label.AutoSize = true;
-                                        label.Location = new Point(0, 0);
+                                        Label label = new Label
+                                        {
+                                            Text = "",
+                                            AutoSize = true,
+                                            Location = new Point(0, 0)
+                                        };
                                         panel.Controls.Add(label);
                                     }
 
@@ -616,10 +635,12 @@ namespace DynamicWindows
                                     if (!xmlElement.HasChildNodes || xmlElement.GetElementsByTagName("d").Count == 0)
                                     {
                                         // Add a label for the spell book name
-                                        Label bookLabel = new Label();
-                                        bookLabel.Text = xmlElement.InnerXml;
-                                        bookLabel.AutoSize = true;
-                                        bookLabel.Location = new Point(0, y);
+                                        Label bookLabel = new Label
+                                        {
+                                            Text = xmlElement.InnerXml,
+                                            AutoSize = true,
+                                            Location = new Point(0, y)
+                                        };
                                         //bookLabel.Font = new Font(bookLabel.Font, FontStyle.Regular | FontStyle.Underline);
                                         bookLabel.Font = new Font(bookLabel.Font.FontFamily, 10, FontStyle.Bold);
                                         bookLabel.ForeColor = this.formfore;
@@ -635,11 +656,13 @@ namespace DynamicWindows
                                         {
                                             if (node is XmlElement elem && elem.Name == "d")
                                             {
-                                                Label spellLabel = new Label();
-                                                spellLabel.Text = elem.InnerText;
-                                                spellLabel.AutoSize = true;
-                                                spellLabel.Location = new Point(15, y);
-                                                spellLabel.ForeColor = this.formfore;
+                                                Label spellLabel = new Label
+                                                {
+                                                    Text = elem.InnerText,
+                                                    AutoSize = true,
+                                                    Location = new Point(15, y),
+                                                    ForeColor = this.formfore
+                                                };
                                                 spellLabel.Font = new Font(spellLabel.Font.FontFamily, 9, FontStyle.Underline);
                                                 spellLabel.Tag = elem.GetAttribute("cmd");
                                                 spellLabel.Click += SpellLabel_Click;
@@ -748,11 +771,13 @@ namespace DynamicWindows
                     {
                         if (node is XmlElement elem && elem.Name == "d")
                         {
-                            Label spellLabel = new Label();
-                            spellLabel.Text = elem.InnerText;
-                            spellLabel.AutoSize = true;
-                            spellLabel.Location = new Point(0, y);
-                            spellLabel.ForeColor = this.formfore;
+                            Label spellLabel = new Label
+                            {
+                                Text = elem.InnerText,
+                                AutoSize = true,
+                                Location = new Point(0, y),
+                                ForeColor = this.formfore
+                            };
                             spellLabel.Font = new Font(spellLabel.Font, FontStyle.Underline);
                             spellLabel.Tag = elem.GetAttribute("cmd");
                             spellLabel.Click += SpellLabel_Click;
@@ -813,8 +838,7 @@ namespace DynamicWindows
 
             XmlDocument doc = new XmlDocument();
             doc.LoadXml("<root>" + linkText + "</root>");
-            XmlElement elem = doc.DocumentElement.FirstChild as XmlElement;
-            if (elem != null && elem.Name == "d" && elem.HasAttribute("cmd"))
+            if (doc.DocumentElement.FirstChild is XmlElement elem && elem.Name == "d" && elem.HasAttribute("cmd"))
             {
                 ghost.SendText(elem.GetAttribute("cmd"));
             }
@@ -848,7 +872,7 @@ namespace DynamicWindows
             SkinnedMDIChild window = FindWindowByName("bugDialogBox");
             if (window != null)
             {
-                textBox.TextChanged += (sender, e) => textBox_TextChanged(sender, e, dyndialog);
+                textBox.TextChanged += (sender, e) => TextBox_TextChanged(sender, e, dyndialog);
             }
             textBox.Size = this.Build_size(cbx, 200, 75);
             textBox.Location = this.Set_location(cbx, (Control)textBox, dyndialog);
@@ -859,8 +883,13 @@ namespace DynamicWindows
             dyndialog.formBody.Controls.Add((Control)textBox);
         }
 
-        private void textBox_TextChanged(object sender, EventArgs e, SkinnedMDIChild dyndialog)
+        private void TextBox_TextChanged(object sender, EventArgs e, SkinnedMDIChild dyndialog)
         {
+            if (e is null)
+            {
+                throw new ArgumentNullException(nameof(e));
+            }
+
             SkinnedMDIChild window = FindWindowByName("bugDialogBox");
             if (window != null)
             {
@@ -943,8 +972,7 @@ namespace DynamicWindows
             progressBar.Name = cbx.GetAttribute("id");
             progressBar.Text = cbx.GetAttribute("text");
             progressBar.Style = ProgressBarStyle.Continuous;
-            int result = 0;
-            int.TryParse(cbx.GetAttribute("value"), out result);
+            int.TryParse(cbx.GetAttribute("value"), out int result);
             progressBar.Value = result;
             progressBar.Size = this.Build_size(cbx, 200, 20);
             progressBar.Location = this.Set_location(cbx, (Control)progressBar, dyndialog);
@@ -969,12 +997,14 @@ namespace DynamicWindows
             else
             {
                 // Create a new closeButton if it doesn't exist
-                CmdButton closeButton = new CmdButton();
-                closeButton.Name = cbx.GetAttribute("id");
-                closeButton.Text = cbx.GetAttribute("value"); // Set the Text property to the value of the value attribute
-                closeButton.AutoSize = true;
-                closeButton.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-                closeButton.cmd_string = !cbx.HasAttribute("cmd") ? "" : cbx.GetAttribute("cmd");
+                CmdButton closeButton = new CmdButton
+                {
+                    Name = cbx.GetAttribute("id"),
+                    Text = cbx.GetAttribute("value"), // Set the Text property to the value of the value attribute
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                    cmd_string = !cbx.HasAttribute("cmd") ? "" : cbx.GetAttribute("cmd")
+                };
                 closeButton.Location = this.Set_location(cbx, (Control)closeButton, dyndialog);
                 closeButton.Click += new EventHandler(this.CbClose);
                 dyndialog.formBody.Controls.Add((Control)closeButton);
@@ -985,10 +1015,12 @@ namespace DynamicWindows
 
         private void Parse_drop_down(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
-            cbDropBox cbDropBox = new cbDropBox();
-            cbDropBox.Name = cbx.GetAttribute("id");
-            cbDropBox.Text = cbx.GetAttribute("value");
-            cbDropBox.content_handler_data = new Hashtable();
+            cbDropBox cbDropBox = new cbDropBox
+            {
+                Name = cbx.GetAttribute("id"),
+                Text = cbx.GetAttribute("value"),
+                content_handler_data = new Hashtable()
+            };
             string[] strArray1 = cbx.GetAttribute("content_text").Split(',');
             string[] strArray2 = cbx.GetAttribute("content_value").Split(',');
             for (int index = 0; index < strArray1.Length; ++index)
@@ -1015,12 +1047,14 @@ namespace DynamicWindows
 
         private void Parse_command_buttons(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
-            CmdButton cmdButton = new CmdButton();
-            cmdButton.Name = cbx.GetAttribute("id");
-            cmdButton.Text = cbx.GetAttribute("value");
-            cmdButton.cmd_string = cbx.GetAttribute("cmd");
-            cmdButton.AutoSize = true;
-            cmdButton.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            CmdButton cmdButton = new CmdButton
+            {
+                Name = cbx.GetAttribute("id"),
+                Text = cbx.GetAttribute("value"),
+                cmd_string = cbx.GetAttribute("cmd"),
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink
+            };
             if (cbx.GetAttribute("id") == "changeCustom" || cbx.GetAttribute("id") == "changeCustomString")
             {
                 Point location = this.Set_location(cbx, (Control)cmdButton, dyndialog);
@@ -1046,8 +1080,8 @@ namespace DynamicWindows
             //if (!cbx.HasAttribute("width"))
             if (TextRenderer.MeasureText(label.Text, label.Font).Width > 0)
                 label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
-            SkinnedMDIChild window = FindWindowByName("bugDialogBox");
-            if (window != null)
+            SkinnedMDIChild windowbug = FindWindowByName("bugDialogBox");
+            if (windowbug != null)
             {
                 switch (cbx.GetAttribute("id"))
                 {
@@ -1119,7 +1153,7 @@ namespace DynamicWindows
                     ((Form)cmdButton.Parent).Close();
                 }
             }
-            ghost.EchoText(str1);
+
             if (cmdButton.Text == "Update Toggles")
             {
                 ghost.SendText(str1);
@@ -1146,6 +1180,10 @@ namespace DynamicWindows
 
         public void CloseCommand(Button cb)
         {
+            if (cb is null)
+            {
+                throw new ArgumentNullException(nameof(cb));
+            }
         }
 
         public void CbClose(object sender, EventArgs e)
@@ -1213,12 +1251,12 @@ namespace DynamicWindows
         public void CbRadioSelect(object sender, EventArgs e)
         {
             cbRadio cbRadio = (cbRadio)sender;
-            SkinnedMDIChild skinnedMdiChild = (SkinnedMDIChild)cbRadio.FindForm();
+            _ = (SkinnedMDIChild)cbRadio.FindForm();
             foreach (Control control in (ArrangedElementCollection)cbRadio.Parent.Controls)
             {
-                if (control is cbRadio)
+                if (control is cbRadio radio)
                 {
-                    if (cbRadio.group.Equals(((cbRadio)control).group) && !cbRadio.Name.Equals(control.Name))
+                    if (cbRadio.group.Equals(radio.group) && !cbRadio.Name.Equals(control.Name))
                         ((RadioButton)control).Checked = false;
                     else
                         ((RadioButton)control).Checked = true;
@@ -1239,10 +1277,8 @@ namespace DynamicWindows
 
         private Point Set_location(XmlElement cbx, Control cont, SkinnedMDIChild p_form)
         {
-            int result1 = 0;
-            int result2 = 0;
-            int.TryParse(cbx.GetAttribute("top"), out result2);
-            int.TryParse(cbx.GetAttribute("left"), out result1);
+            int.TryParse(cbx.GetAttribute("top"), out int result2);
+            int.TryParse(cbx.GetAttribute("left"), out int result1);
 
             if (cbx.HasAttribute("align"))
             {

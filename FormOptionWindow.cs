@@ -22,7 +22,7 @@ namespace DynamicWindows
     private Label label1;
     private Label label2;
     private Button button_closewindow;
-    private Plugin _plugin;
+    private readonly Plugin _plugin;
 	public IContainer Components { get => components; set => components = value; }
 	
 	public FormOptionWindow(Plugin PlugIn)
@@ -86,7 +86,7 @@ namespace DynamicWindows
       this.checkBoxDisablePlugin.TabIndex = 2;
       this.checkBoxDisablePlugin.Text = "Disable Entire Plugin";
       this.checkBoxDisablePlugin.UseVisualStyleBackColor = true;
-      this.checkBoxDisablePlugin.CheckedChanged += new EventHandler(this.checkBoxDisablePlugin_CheckedChanged);
+      this.checkBoxDisablePlugin.CheckedChanged += new EventHandler(this.CheckBoxDisablePlugin_CheckedChanged);
       this.textBox_Color.Location = new Point(194, 42);
       this.textBox_Color.Name = "textBox_Color";
       this.textBox_Color.Size = new Size(100, 20);
@@ -99,14 +99,14 @@ namespace DynamicWindows
       this.buttonForeground.TabIndex = 4;
       this.buttonForeground.Text = "Foreground";
       this.buttonForeground.UseVisualStyleBackColor = true;
-      this.buttonForeground.Click += new EventHandler(this.buttonForeground_Click);
+      this.buttonForeground.Click += new EventHandler(this.ButtonForeground_Click);
       this.buttonBackground.Location = new Point(249, 13);
       this.buttonBackground.Name = "buttonBackground";
       this.buttonBackground.Size = new Size(75, 23);
       this.buttonBackground.TabIndex = 5;
       this.buttonBackground.Text = "Background";
       this.buttonBackground.UseVisualStyleBackColor = true;
-      this.buttonBackground.Click += new EventHandler(this.buttonBackground_Click);
+      this.buttonBackground.Click += new EventHandler(this.ButtonBackground_Click);
       this.listbox_openwindows.FormattingEnabled = true;
       this.listbox_openwindows.Location = new Point(13, 107);
       this.listbox_openwindows.Name = "listbox_openwindows";
@@ -123,21 +123,21 @@ namespace DynamicWindows
       this.button_ignore.TabIndex = 8;
       this.button_ignore.Text = "Ignore";
       this.button_ignore.UseVisualStyleBackColor = true;
-      this.button_ignore.Click += new EventHandler(this.button_ignore_Click);
+      this.button_ignore.Click += new EventHandler(this.Button_ignore_Click);
       this.button_clear.Location = new Point(340, 260);
       this.button_clear.Name = "button_clear";
       this.button_clear.Size = new Size(55, 23);
       this.button_clear.TabIndex = 9;
       this.button_clear.Text = "Clear";
       this.button_clear.UseVisualStyleBackColor = true;
-      this.button_clear.Click += new EventHandler(this.button_clear_Click);
+      this.button_clear.Click += new EventHandler(this.Button_clear_Click);
       this.button_clearall.Location = new Point(249, 260);
       this.button_clearall.Name = "button_clearall";
       this.button_clearall.Size = new Size(75, 23);
       this.button_clearall.TabIndex = 10;
       this.button_clearall.Text = "Clear All";
       this.button_clearall.UseVisualStyleBackColor = true;
-      this.button_clearall.Click += new EventHandler(this.button_clearall_Click);
+      this.button_clearall.Click += new EventHandler(this.Button_clearall_Click);
       this.label1.AutoSize = true;
       this.label1.Location = new Point(238, 88);
       this.label1.Name = "label1";
@@ -156,7 +156,7 @@ namespace DynamicWindows
       this.button_closewindow.TabIndex = 13;
       this.button_closewindow.Text = "Close";
       this.button_closewindow.UseVisualStyleBackColor = true;
-      this.button_closewindow.Click += new EventHandler(this.button_closewindow_Click);
+      this.button_closewindow.Click += new EventHandler(this.Button_closewindow_Click);
       this.AutoScaleDimensions = new SizeF(6f, 13f);
       this.AutoScaleMode = AutoScaleMode.Font;
       this.CancelButton = (IButtonControl) this.ButtonClose;
@@ -190,7 +190,7 @@ namespace DynamicWindows
         this._plugin.bStowContainer = false;
     }
 
-    private void checkBoxDisablePlugin_CheckedChanged(object sender, EventArgs e)
+    private void CheckBoxDisablePlugin_CheckedChanged(object sender, EventArgs e)
     {
       if (this.checkBoxDisablePlugin.Checked)
       {
@@ -204,12 +204,14 @@ namespace DynamicWindows
         this._plugin.bPluginEnabled = true;
     }
 
-    private void buttonForeground_Click(object sender, EventArgs e)
+    private void ButtonForeground_Click(object sender, EventArgs e)
     {
-      ColorDialog colorDialog = new ColorDialog();
-      colorDialog.AllowFullOpen = true;
-      colorDialog.Color = this._plugin.formfore;
-      if (colorDialog.ShowDialog() != DialogResult.Cancel)
+            ColorDialog colorDialog = new ColorDialog
+            {
+                AllowFullOpen = true,
+                Color = this._plugin.formfore
+            };
+            if (colorDialog.ShowDialog() != DialogResult.Cancel)
       {
         this.textBox_Color.ForeColor = colorDialog.Color;
         this._plugin.formfore = colorDialog.Color;
@@ -217,12 +219,14 @@ namespace DynamicWindows
       this.Update();
     }
 
-    private void buttonBackground_Click(object sender, EventArgs e)
+    private void ButtonBackground_Click(object sender, EventArgs e)
     {
-      ColorDialog colorDialog = new ColorDialog();
-      colorDialog.AllowFullOpen = true;
-      colorDialog.Color = this._plugin.formback;
-      if (colorDialog.ShowDialog() != DialogResult.Cancel)
+            ColorDialog colorDialog = new ColorDialog
+            {
+                AllowFullOpen = true,
+                Color = this._plugin.formback
+            };
+            if (colorDialog.ShowDialog() != DialogResult.Cancel)
       {
         this.textBox_Color.BackColor = colorDialog.Color;
         this._plugin.formback = colorDialog.Color;
@@ -236,7 +240,7 @@ namespace DynamicWindows
       this.Close();
     }
 
-    private void button_ignore_Click(object sender, EventArgs e)
+    private void Button_ignore_Click(object sender, EventArgs e)
     {
       Form form1 = (Form) null;
       foreach (Form form2 in this._plugin.forms)
@@ -256,7 +260,7 @@ namespace DynamicWindows
       this.listbox_openwindows.Items.Remove((object) form1.Name);
     }
 
-    private void button_closewindow_Click(object sender, EventArgs e)
+    private void Button_closewindow_Click(object sender, EventArgs e)
     {
       Form form1 = (Form) null;
       foreach (Form form2 in this._plugin.forms)
@@ -276,17 +280,20 @@ namespace DynamicWindows
       this.listbox_openwindows.Items.Remove((object) form1.Name);
     }
 
-    private void button_clearall_Click(object sender, EventArgs e)
+    private void Button_clearall_Click(object sender, EventArgs e)
     {
       this._plugin.ignorelist.Clear();
       this.listBox_ignores.Items.Clear();
     }
 
-    private void button_clear_Click(object sender, EventArgs e)
+    private void Button_clear_Click(object sender, EventArgs e)
     {
-      string str = (string) this.listBox_ignores.Items[this.listBox_ignores.SelectedIndex];
-      this._plugin.ignorelist.Remove((object) str);
-      this.listBox_ignores.Items.Remove((object) str);
+        if (listBox_ignores.SelectedIndex >= 0)
+        {
+            string str = (string)listBox_ignores.Items[listBox_ignores.SelectedIndex];
+            this._plugin.ignorelist.Remove(str);
+            listBox_ignores.Items.Remove(str);
+        }
     }
-  }
+    }
 }
