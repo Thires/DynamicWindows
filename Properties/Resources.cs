@@ -112,7 +112,15 @@ namespace DynamicWindows.Properties
       }
     }
 
-    internal Resources()
+        internal static Bitmap body_image
+        {
+            get
+            {
+                return (Bitmap) Resources.ResourceManager.GetObject("body_image", Resources.resourceCulture);
+            }
+        }
+
+        internal Resources()
     {
     }
   }
