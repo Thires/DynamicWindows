@@ -1,14 +1,16 @@
 ﻿using GeniePlugin.Interfaces;
+using Microsoft.VisualBasic.Devices;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Windows.Forms.Layout;
 using System.Xml;
-using System.Linq;
-using System.Text.RegularExpressions;
-using Microsoft.VisualBasic.Devices;
+using DynamicWindows.Properties;
 
 namespace DynamicWindows
 {
@@ -25,6 +27,7 @@ namespace DynamicWindows
         public Form pForm;
         public IHost ghost;
         private string configPath;
+        private InjuriesWindow injuriesWindow;
 
         public bool Enabled
         {
@@ -43,7 +46,7 @@ namespace DynamicWindows
 
         public string Name => "Dynamic Windows";
 
-        public string Version => "2.1.5";
+        public string Version => "2.1.6";
 
         public string Author => "Multiple Developers";
 
@@ -57,6 +60,8 @@ namespace DynamicWindows
                 this.pForm = Host.ParentForm;
                 this.configPath = Host.get_Variable("PluginPath");
                 this.LoadConfig();
+                this.injuriesWindow = new InjuriesWindow(this);
+
             }
             catch
             {
@@ -145,21 +150,26 @@ namespace DynamicWindows
 
         public string ParseInput(string Text)
         {
-            if (!Text.StartsWith("/debugwindows"))
-                return Text;
-            this.ghost.EchoText("Form Count: " + this.forms.Count.ToString());
-            foreach (Control control in this.forms)
-                this.ghost.EchoText("    Form: " + control.Name);
-            foreach (string str in (IEnumerable)this.documents.Keys)
-                this.ghost.EchoText(string.Concat(new object[4]
-                {
-          (object) "Variable: ",
-          (object) str,
-          (object) " - ",
-          this.documents[(object) str]
-                }));
-            return "";
+            if (Text.Equals("/debugwindows", StringComparison.OrdinalIgnoreCase))
+            {
+                this.ghost.EchoText("Form Count: " + this.forms.Count.ToString());
+                foreach (Control control in this.forms)
+                    this.ghost.EchoText("    Form: " + control.Name);
+                foreach (string str in (IEnumerable)this.documents.Keys)
+                    this.ghost.EchoText($"Variable: {str} - {this.documents[(object)str]}");
+                return "";
+            }
+
+            if (Text.Equals("/injurieswindow", StringComparison.OrdinalIgnoreCase))
+            {
+                this.ghost.EchoText("Re-opening injuries window...");
+                this.injuriesWindow.Create(null);
+                return "";
+            }
+
+            return Text;
         }
+
 
         public string ParseText(string Text, string Window)
         {
@@ -178,29 +188,42 @@ namespace DynamicWindows
         {
             if (!this.bPluginEnabled)
                 return;
-            XmlDocument xmlDocument = new XmlDocument();
-            xmlDocument.LoadXml("<?xml version='1.0'?><root>" + XML + "</root>");
-            foreach (XmlElement xmlElement in xmlDocument.DocumentElement.ChildNodes)
+
+            try
             {
-                switch (xmlElement.Name)
+                XmlDocument xmlDocument = new XmlDocument();
+                xmlDocument.LoadXml("<?xml version='1.0'?><root>" + XML + "</root>");
+                foreach (XmlElement xmlElement in xmlDocument.DocumentElement.ChildNodes)
                 {
-                    //case "exposeStream":
-                    //    this.Parse_xml_exposestream(xmlElement);
-                    //    continue;
-                    //case "pushStream":
-                    //    this.Parse_xml_pushstream(xmlElement);
-                    //    continue;
-                    //case "popStream":
-                    //    this.Parse_xml_popStream(xmlElement);
-                    //    continue;
-                    case "streamWindow":
+                    switch (xmlElement.Name)
+                    {
+                        //case "exposeStream":
+                        //    this.Parse_xml_exposestream(xmlElement);
+                        //    continue;
+                        //case "pushStream":
+                        //    this.Parse_xml_pushstream(xmlElement);
+                        //    continue;
+                        //case "popStream":
+                        //    this.Parse_xml_popStream(xmlElement);
+                        //    continue;
+                        case "streamWindow":
                         this.Parse_xml_streamwindow(xmlElement);
                         continue;
                     case "openDialog":
-                        this.Parse_xml_openwindow(xmlElement);
+                            if (xmlElement.GetAttribute("id") == "injuries")
+                            {
+                                this.injuriesWindow.Create(xmlElement);
+                                continue;
+                            }
+                            this.Parse_xml_openwindow(xmlElement);
                         continue;
                     case "dialogData":
-                        this.Parse_xml_updatewindow(xmlElement);
+                            if (xmlElement.GetAttribute("id") == "injuries")
+                            {
+                                this.injuriesWindow.Update(xmlElement);
+                                continue;
+                            }
+                            this.Parse_xml_updatewindow(xmlElement);
                         continue;
                     case "closeDialog":
                         this.Parse_xml_closewindow(xmlElement);
@@ -228,6 +251,11 @@ namespace DynamicWindows
                 }
             }
         }
+            catch (Exception ex)
+            {
+                this.ghost.EchoText("Error parsing XML: " + ex.Message);
+            }
+        }
 
         public void Show()
         {
@@ -247,6 +275,10 @@ namespace DynamicWindows
         {
             this.SaveConfig();
         }
+
+
+
+
 
         private void Parse_xml_streamwindow(XmlElement elem)
         {
@@ -298,7 +330,7 @@ namespace DynamicWindows
                 return;
 
             // Create a new instance of the HelpWindows class
-            helpWindows helpWindows = new helpWindows();
+            HelpWindows helpWindows = new HelpWindows();
 
             // Create a new RichTextBox control
             RichTextBox contentBox = new RichTextBox
@@ -688,7 +720,7 @@ namespace DynamicWindows
                                 break;
 
                             default:
-                                value = Regex.Replace(value, "(<pushBold />|<popBold />)", "");
+                                value = Regex.Replace(value, "(<pushBold />|<popBold />|<pushBold/>|<popBold/>)", "");
                                 //control.Text = value;
 
                                 string attribute = xmlElement.GetAttribute("id");
@@ -958,6 +990,7 @@ namespace DynamicWindows
                 cbRadio.Checked = false;
             else
                 cbRadio.Checked = true;
+            cbRadio.CheckedChanged += new EventHandler(this.CbRadioSelect);
             cbRadio.Size = this.Build_size(cbx, 200, 20);
             cbRadio.Location = this.Set_location(cbx, (Control)cbRadio, dyndialog);
             cbRadio.Click += new EventHandler(this.CbRadioSelect);
@@ -1157,12 +1190,25 @@ namespace DynamicWindows
             if (cmdButton.Text == "Update Toggles")
             {
                 ghost.SendText(str1);
-            }     
+                foreach (SkinnedMDIChild window in this.forms)
+                {
+                    if (window.Name == "profile")
+                    {
+                        // Call methods to refresh the window
+                        window.Invalidate();
+                        window.Refresh();
+                        window.Update();
+                        this.forms.Add(window);
+                        break;
+                    }
+                }
+            }  
             else if (str1.Contains("profile /set"))
                 ghost.SendText(str1);
             else
                 this.ghost.SendText(str1.Replace(";", "\\;"));
         }
+
 
         public void Cb_SelectedIndexChanged(object sender, EventArgs e)
         {
@@ -1250,29 +1296,35 @@ namespace DynamicWindows
 
         public void CbRadioSelect(object sender, EventArgs e)
         {
-            cbRadio cbRadio = (cbRadio)sender;
-            _ = (SkinnedMDIChild)cbRadio.FindForm();
-            foreach (Control control in (ArrangedElementCollection)cbRadio.Parent.Controls)
+            cbRadio clickedRadio = (cbRadio)sender;
+
+            // Only proceed if the radio was just checked and the event is from the user
+            if (!clickedRadio.Checked || !clickedRadio.Focused)
+                return;
+
+            // Uncheck all radios in the same group
+            foreach (Control control in clickedRadio.Parent.Controls)
             {
-                if (control is cbRadio radio)
+                if (control is cbRadio radio && radio.group == clickedRadio.group)
                 {
-                    if (cbRadio.group.Equals(radio.group) && !cbRadio.Name.Equals(control.Name))
-                        ((RadioButton)control).Checked = false;
-                    else
-                        ((RadioButton)control).Checked = true;
+                    radio.Checked = (radio == clickedRadio);
                 }
+            }
+
+            // Send command
+            if (!string.IsNullOrEmpty(clickedRadio.command))
+            {
+                InjuriesWindow.currentInjuryCommand = clickedRadio.command;
+                ghost.SendText(clickedRadio.command);
             }
         }
 
+
         private Size Build_size(XmlElement cbx, int width, int height)
         {
-            int width1 = width;
-            int height1 = height;
-            if (cbx.HasAttribute("width"))
-                width1 = int.Parse(cbx.GetAttribute("width"));
-            if (cbx.HasAttribute("height"))
-                height1 = int.Parse(cbx.GetAttribute("height"));
-            return new Size(width1, height1);
+            int w = cbx.HasAttribute("width") ? int.Parse(cbx.GetAttribute("width")) : width;
+            int h = cbx.HasAttribute("height") ? int.Parse(cbx.GetAttribute("height")) : height;
+            return new Size(w, h);
         }
 
         private Point Set_location(XmlElement cbx, Control cont, SkinnedMDIChild p_form)
