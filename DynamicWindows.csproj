@@ -9,7 +9,7 @@
     <AssemblyName>DynamicWindows</AssemblyName>
     <ApplicationVersion>4.1.1075.6819</ApplicationVersion>
     <RootNamespace>DynamicWindows</RootNamespace>
-    <TargetFrameworkVersion>v4.7.1</TargetFrameworkVersion>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileUpgradeFlags>
     </FileUpgradeFlags>
     <UpgradeBackupLocation>
@@ -56,6 +56,7 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="helpWindows.cs" />
+    <Compile Include="Injuries.cs" />
     <Compile Include="SkinnedMDIChild.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -90,6 +91,12 @@
     <EmbeddedResource Include="SkinnedMDIChild.resx">
       <SubType>Designer</SubType>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="body.png" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\body_image.bmp" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>
