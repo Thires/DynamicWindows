@@ -4,4 +4,8 @@ fixed bug window<br>
 fixed all bank windows <br>
 fixed tdp plan when stats are over 100, also fixed so the numbers aren't truncated<br>
 fixed the spell choose window, when talking to guild leader and asking about magic<br>
-fixed profile window, just can't get profile to update when changes are done with profile edit
+fixed profile window, just can't get profile to update when changes are done with profile edit<br>
+still have to add feats window<br>
+added injury window<br>
+
+![image](https://github.com/user-attachments/assets/0871702d-4b5b-4254-9e01-a45800ebc258)
