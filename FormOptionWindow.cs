@@ -254,33 +254,33 @@ namespace DynamicWindows
       if (form1 == null)
         return;
       this.listBox_ignores.Items.Add((object) form1.Name);
-      this._plugin.ignorelist.Add((object) form1.Name);
-      this._plugin.forms.Remove((object) form1);
+      this._plugin.ignorelist.Add((string)(object) form1.Name);
+      this._plugin.forms.Remove((SkinnedMDIChild)(object) form1);
       form1.Close();
       this.listbox_openwindows.Items.Remove((object) form1.Name);
     }
 
-    private void Button_closewindow_Click(object sender, EventArgs e)
-    {
-      Form form1 = (Form) null;
-      foreach (Form form2 in this._plugin.forms)
-      {
-        if (((object) form2.Name).Equals(this.listbox_openwindows.Items[this.listbox_openwindows.SelectedIndex]))
+        private void Button_closewindow_Click(object sender, EventArgs e)
         {
-          form1 = form2;
-          break;
-        }
-      }
-      if (form1 == null)
-        return;
-      this.listbox_openwindows.Items.Remove((object) form1.Name);
-      this._plugin.forms.Remove((object) form1.Name);
-      this._plugin.forms.Remove((object) form1);
-      form1.Close();
-      this.listbox_openwindows.Items.Remove((object) form1.Name);
-    }
+            Form form1 = null;
+            foreach (Form form2 in this._plugin.forms)
+            {
+                if (form2.Name.Equals(this.listbox_openwindows.Items[this.listbox_openwindows.SelectedIndex].ToString()))
+                {
+                    form1 = form2;
+                    break;
+                }
+            }
+            if (form1 == null)
+                return;
 
-    private void Button_clearall_Click(object sender, EventArgs e)
+            this.listbox_openwindows.Items.Remove(form1.Name);
+            this._plugin.forms.Remove(form1);
+            form1.Close();
+        }
+
+
+        private void Button_clearall_Click(object sender, EventArgs e)
     {
       this._plugin.ignorelist.Clear();
       this.listBox_ignores.Items.Clear();

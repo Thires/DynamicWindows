@@ -46,7 +46,7 @@ namespace DynamicWindows
 
         public string Name => "Dynamic Windows";
 
-        public string Version => "2.1.6";
+        public string Version => "2.1.7";
 
         public string Author => "Multiple Developers";
 
@@ -276,10 +276,6 @@ namespace DynamicWindows
             this.SaveConfig();
         }
 
-
-
-
-
         private void Parse_xml_streamwindow(XmlElement elem)
         {
             // Check if the id attribute is "profileHelp"
@@ -429,7 +425,6 @@ namespace DynamicWindows
                 streamWindow.Text = content;
             }
         }
-
 
         private void Parse_xml_exposewindow(XmlElement elem)
         {
