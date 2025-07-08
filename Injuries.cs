@@ -12,53 +12,49 @@ namespace DynamicWindows
         private readonly Plugin plugin;
         private Panel injurySilhouettePanel;
         internal static string currentInjuryCommand = "_injury 0 -1";
-        private Dictionary<string, HashSet<string>> woundData = new Dictionary<string, HashSet<string>>();
+        //private Dictionary<string, HashSet<string>> woundData = new Dictionary<string, HashSet<string>>();
 
         private readonly Dictionary<string, Point> injuryMarkerPositions = new Dictionary<string, Point>
         {
-            { "head",     new Point(50,  10) },
-            { "neck",     new Point(50,  28) },
-            { "chest",    new Point(45,  48) },
-            { "abdomen",  new Point(50,  68) },
-            { "back",     new Point(45,  88) },
+            { "head",     new Point(52,  10) },
+            { "neck",     new Point(52,  28) },
+            { "chest",    new Point(52,  48) },
+            { "abdomen",  new Point(52,  68) },
+            { "back",     new Point(102,  46) },
 
-            { "leftArm",  new Point( 4,  48) },
-            { "rightArm", new Point(84,  48) },
-            { "leftHand", new Point(0,   82) },
+            { "leftArm",  new Point(25,  48) },
+            { "rightArm", new Point(80,  48) },
+            { "leftHand", new Point(8,   82) },
             { "rightHand",new Point(92,  82) },
 
-            { "leftLeg",  new Point(30, 118) },
+            { "leftLeg",  new Point(34, 118) },
             { "rightLeg", new Point(70, 118) },
-            { "leftFoot", new Point(28, 158) },
-            { "rightFoot",new Point(72, 158) },
 
             { "leftEye",  new Point(4,  2) },
-            { "rightEye", new Point(84,  2) },
-            { "nsys",     new Point(50, 100) }
+            { "rightEye", new Point(92,  2) },
+            { "nsys",     new Point(4, 46) }
         };
 
 
         private readonly Dictionary<string, Point> scarMarkerPositions = new Dictionary<string, Point>
         {
-            { "head",     new Point(54,  10) },
-            { "neck",     new Point(54,  28) },
-            { "chest",    new Point(49,  48) },
-            { "abdomen",  new Point(54,  68) },
-            { "back",     new Point(49,  88) },
+            { "head",     new Point(52,  10) },
+            { "neck",     new Point(52,  28) },
+            { "chest",    new Point(52,  48) },
+            { "abdomen",  new Point(52,  68) },
+            { "back",     new Point(102,  46) },
 
-            { "leftArm",  new Point(8,  48) },
-            { "rightArm", new Point(88,  48) },
-            { "leftHand", new Point(4,   78) },
-            { "rightHand",new Point(96,  78) },
+            { "leftArm",  new Point(25,  48) },
+            { "rightArm", new Point(80,  48) },
+            { "leftHand", new Point(8,   82) },
+            { "rightHand",new Point(92,  82) },
 
             { "leftLeg",  new Point(34, 118) },
-            { "rightLeg", new Point(74, 118) },
-            { "leftFoot", new Point(32, 158) },
-            { "rightFoot",new Point(76, 158) },
+            { "rightLeg", new Point(70, 118) },
 
-            { "leftEye",  new Point(8,  2) },
-            { "rightEye", new Point(88,  2) },
-            { "nsys",     new Point(54, 100) }
+            { "leftEye",  new Point(4,  2) },
+            { "rightEye", new Point(92,  2) },
+            { "nsys",     new Point(4, 46) }
         };
 
         public InjuriesWindow(Plugin plugin)
@@ -158,12 +154,12 @@ namespace DynamicWindows
         {
             switch (currentInjuryCommand)
             {
-                case "_injury 0 -1": return new List<string> { "Injury1", "Injury2" }; // E Wound
-                case "_injury 1 -1": return new List<string> { "Scar1", "Scar2" };     // E Scar
-                case "_injury 2 -1": return new List<string> { "Injury1", "Injury2", "Scar1", "Scar2" }; // E Both
-                case "_injury 3 -1": return new List<string> { "Injury1", "Injury2" }; // I Wound
-                case "_injury 4 -1": return new List<string> { "Scar1", "Scar2" };     // I Scar
-                case "_injury 5 -1": return new List<string> { "Injury1", "Injury2", "Scar1", "Scar2" }; // I Both
+                case "_injury 0 -1": return new List<string> { "Injury1", "Injury2", "Injury3" }; // E Wound
+                case "_injury 1 -1": return new List<string> { "Scar1", "Scar2", "Scar3" };     // E Scar
+                case "_injury 2 -1": return new List<string> { "Injury1", "Injury2", "Injury3", "Injury4", "Injury5", "Scar1", "Scar2", "Scar3" }; // E Both
+                case "_injury 3 -1": return new List<string> { "Injury1", "Injury2", "Injury3", "Injury4", "Injury5", "Nsys1", "Nsys2", "Nsys3" }; // I Wound
+                case "_injury 4 -1": return new List<string> { "Scar1", "Scar2", "Scar3", "Nsys1", "Nsys2", "Nsys3" };      // I Scar
+                case "_injury 5 -1": return new List<string> { "Injury1", "Injury2", "Injury3", "Scar1", "Scar2", "Scar3", "Nsys1", "Nsys2", "Nsys3" }; // I Both
             }
             return new List<string>(); // Default to nothing
         }
@@ -212,25 +208,28 @@ namespace DynamicWindows
                 }
                 else
                 {
-                    // Remove existing matching markers
+                    // Remove old wound markers
                     List<Control> toRemove = new List<Control>();
                     foreach (Control ctrl in injurySilhouettePanel.Controls)
                     {
                         if (!(ctrl is Label)) continue;
 
                         string text = ctrl.Text;
-                        if ((text == "1" && activeWoundTypes.Contains("Injury1")) ||
-                            (text == "2" && activeWoundTypes.Contains("Injury2")) ||
-                            (text == "1" && activeWoundTypes.Contains("Scar1")) ||
-                            (text == "2" && activeWoundTypes.Contains("Scar2")))
+
+                        // Remove any marker that matches a wound type we're displaying
+                        if ((text == "1" && (activeWoundTypes.Contains("Injury1") || activeWoundTypes.Contains("Scar1") || activeWoundTypes.Contains("Nsys1"))) ||
+                            (text == "2" && (activeWoundTypes.Contains("Injury2") || activeWoundTypes.Contains("Scar2") || activeWoundTypes.Contains("Nsys2"))) ||
+                            (text == "3" && (activeWoundTypes.Contains("Injury3") || activeWoundTypes.Contains("Scar3") || activeWoundTypes.Contains("Nsys3"))))
                         {
                             toRemove.Add(ctrl);
                         }
                     }
-                    foreach (Control ctrl in toRemove)
-                        injurySilhouettePanel.Controls.Remove(ctrl);
 
-                    // Add new wound markers
+                    foreach (Control ctrl in toRemove)
+                    {
+                        injurySilhouettePanel.Controls.Remove(ctrl);
+                    }
+
                     foreach (XmlElement image in images)
                     {
                         string part = image.GetAttribute("id");
@@ -244,32 +243,87 @@ namespace DynamicWindows
                         Color backColor = Color.Transparent;
                         bool valid = false;
 
-                        if ((name == "Injury1" || name == "Injury2") && injuryMarkerPositions.TryGetValue(part, out location))
+                        // Injuries
+                        if (name == "Injury1" && injuryMarkerPositions.TryGetValue(part, out location))
                         {
-                            text = name == "Injury1" ? "1" : "2";
-                            backColor = name == "Injury1" ? Color.Coral : Color.Red;
+                            text = "1";
+                            backColor = Color.Yellow;
                             valid = true;
                         }
-                        else if ((name == "Scar1" || name == "Scar2") && scarMarkerPositions.TryGetValue(part, out location))
+                        else if (name == "Injury2" && injuryMarkerPositions.TryGetValue(part, out location))
                         {
-                            location.X += 16;
-                            text = name == "Scar1" ? "1" : "2";
-                            backColor = name == "Scar1" ? Color.Orange : Color.DarkOrange;
+                            text = "2";
+                            backColor = Color.Orange;
+                            valid = true;
+                        }
+                        else if (name == "Injury3" && injuryMarkerPositions.TryGetValue(part, out location))
+                        {
+                            text = "3";
+                            backColor = Color.Red;
+                            valid = true;
+                        }
+
+                        // Scars
+                        else if (name == "Scar1" && scarMarkerPositions.TryGetValue(part, out location))
+                        {
+                            text = "1";
+                            backColor = Color.Yellow;
+                            valid = true;
+                        }
+                        else if (name == "Scar2" && scarMarkerPositions.TryGetValue(part, out location))
+                        {
+                            text = "2";
+                            backColor = Color.Orange;
+                            valid = true;
+                        }
+                        else if (name == "Scar3" && scarMarkerPositions.TryGetValue(part, out location))
+                        {
+                            text = "3";
+                            backColor = Color.Red;
+                            valid = true;
+                        }
+
+                        // Nerves
+                        else if (name == "Nsys1" && injuryMarkerPositions.TryGetValue(part, out location))
+                        {
+                            text = "1";
+                            backColor = Color.Yellow;
+                            valid = true;
+                        }
+                        else if (name == "Nsys2" && injuryMarkerPositions.TryGetValue(part, out location))
+                        {
+                            text = "2";
+                            backColor = Color.Orange;
+                            valid = true;
+                        }
+                        else if (name == "Nsys3" && injuryMarkerPositions.TryGetValue(part, out location))
+                        {
+                            text = "3";
+                            backColor = Color.Red;
                             valid = true;
                         }
 
                         if (valid)
                         {
-                            Label marker = new Label
-                            {
-                                Size = new Size(15, 15),
-                                TextAlign = ContentAlignment.MiddleCenter,
-                                ForeColor = Color.White,
-                                BackColor = backColor,
-                                BorderStyle = BorderStyle.FixedSingle,
-                                Text = text,
-                                Location = location
-                            };
+                            Label marker = new Label();
+                            marker.Size = new Size(15, 15);
+                            marker.TextAlign = ContentAlignment.MiddleCenter;
+                            marker.ForeColor = Color.White;
+                            //marker.Font = new Font(marker.Font, FontStyle.Bold);
+                            marker.BackColor = backColor;
+                            marker.BorderStyle = BorderStyle.FixedSingle;
+                            marker.Text = text;
+                            marker.Location = location;
+
+                            // Set text color based on severity
+                            if (text == "1")
+                                marker.ForeColor = Color.Black;
+                            else if (text == "2")
+                                marker.ForeColor = Color.Black;
+                            else if (text == "3")
+                                marker.ForeColor = Color.White;
+
+
                             injurySilhouettePanel.Controls.Add(marker);
                         }
                     }
@@ -277,6 +331,7 @@ namespace DynamicWindows
                     injurySilhouettePanel.Invalidate();
                     injurySilhouettePanel.Refresh();
                 }
+
             }
 
             // Health bar update — always runs

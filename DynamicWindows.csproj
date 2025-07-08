@@ -55,7 +55,6 @@
     <Compile Include="cbStreamBox.cs">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="Class1.cs" />
     <Compile Include="helpWindows.cs" />
     <Compile Include="Injuries.cs" />
     <Compile Include="SkinnedMDIChild.cs">
