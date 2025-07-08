@@ -240,25 +240,42 @@ namespace DynamicWindows
       this.Close();
     }
 
-    private void Button_ignore_Click(object sender, EventArgs e)
-    {
-      Form form1 = (Form) null;
-      foreach (Form form2 in this._plugin.forms)
-      {
-        if (((object) form2.Name).Equals(this.listbox_openwindows.Items[this.listbox_openwindows.SelectedIndex]))
+        private void Button_ignore_Click(object sender, EventArgs e)
         {
-          form1 = form2;
-          break;
+            if (listbox_openwindows.SelectedIndex == -1)
+                return;
+
+            string selectedName = listbox_openwindows.SelectedItem.ToString();
+            Form form1 = null;
+
+            foreach (Form form2 in this._plugin.forms)
+            {
+                if (form2.Name == selectedName)
+                {
+                    form1 = form2;
+                    break;
+                }
+            }
+
+            if (form1 == null)
+                return;
+
+            if (!this._plugin.ignorelist.Contains(form1.Name))
+            {
+                this.listBox_ignores.Items.Add(form1.Name);
+                this._plugin.ignorelist.Add(form1.Name);
+            }
+
+            if (form1 is SkinnedMDIChild skinnedForm)
+                this._plugin.forms.Remove(skinnedForm);
+
+            form1.Close();
+            this.listbox_openwindows.Items.Remove(form1.Name);
+
+            // Optional: save immediately
+            this._plugin.SaveConfig();
         }
-      }
-      if (form1 == null)
-        return;
-      this.listBox_ignores.Items.Add((object) form1.Name);
-      this._plugin.ignorelist.Add((string)(object) form1.Name);
-      this._plugin.forms.Remove((SkinnedMDIChild)(object) form1);
-      form1.Close();
-      this.listbox_openwindows.Items.Remove((object) form1.Name);
-    }
+
 
         private void Button_closewindow_Click(object sender, EventArgs e)
         {

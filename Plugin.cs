@@ -46,7 +46,7 @@ namespace DynamicWindows
 
         public string Name => "Dynamic Windows";
 
-        public string Version => "2.1.8";
+        public string Version => "2.1.9";
 
         public string Author => "Multiple Developers";
 
@@ -163,6 +163,17 @@ namespace DynamicWindows
             if (Text.Equals("/injurieswindow", StringComparison.OrdinalIgnoreCase))
             {
                 this.ghost.EchoText("Re-opening injuries window...");
+
+                string id = "injuries";
+
+                var match = this.ignorelist.Cast<string>()
+                    .FirstOrDefault(x => x.Equals(id, StringComparison.OrdinalIgnoreCase));
+
+                if (match != null)
+                {
+                    this.ignorelist.Remove(match);
+                }
+
                 this.injuriesWindow.Create(null);
                 return "";
             }
@@ -195,6 +206,15 @@ namespace DynamicWindows
                 xmlDocument.LoadXml("<?xml version='1.0'?><root>" + XML + "</root>");
                 foreach (XmlElement xmlElement in xmlDocument.DocumentElement.ChildNodes)
                 {
+                    string id = xmlElement.GetAttribute("id")?.Trim();
+
+                    // Skip any ignored windows globally
+                    if (!string.IsNullOrEmpty(id) &&
+                        this.ignorelist.Cast<string>().Any(x => x.Equals(id, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        continue;
+                    }
+
                     switch (xmlElement.Name)
                     {
                         //case "exposeStream":
@@ -210,7 +230,7 @@ namespace DynamicWindows
                         this.Parse_xml_streamwindow(xmlElement);
                         continue;
                     case "openDialog":
-                            if (xmlElement.GetAttribute("id") == "injuries")
+                            if (id == "injuries" && this.injuriesWindow != null)
                             {
                                 this.injuriesWindow.Create(xmlElement);
                                 continue;
@@ -218,13 +238,13 @@ namespace DynamicWindows
                             this.Parse_xml_openwindow(xmlElement);
                         continue;
                     case "dialogData":
-                            if (xmlElement.GetAttribute("id") == "injuries")
+                            if (id == "injuries" && this.injuriesWindow != null)
                             {
                                 this.injuriesWindow.Update(xmlElement);
                                 continue;
                             }
                             this.Parse_xml_updatewindow(xmlElement);
-                        continue;
+                            continue;
                     case "closeDialog":
                         this.Parse_xml_closewindow(xmlElement);
                         continue;
