@@ -8,4 +8,5 @@ fixed profile window, just can't get profile to update when changes are done wit
 still have to add feats window<br>
 added injury window<br>
 
-![image](https://github.com/user-attachments/assets/0871702d-4b5b-4254-9e01-a45800ebc258)
+![image](https://github.com/user-attachments/assets/cbb42b56-2388-4e3f-8723-8d2879f4c25a)
+
