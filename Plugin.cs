@@ -50,7 +50,7 @@ namespace DynamicWindows
 
         public string Name => "Dynamic Windows";
 
-        public string Version => "2.2.0";
+        public string Version => "2.2.1";
 
         public string Author => "Multiple Developers";
 

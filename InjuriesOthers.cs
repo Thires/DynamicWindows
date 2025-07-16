@@ -63,7 +63,7 @@ namespace DynamicWindows
 
             string[] labels = { "E Wound", "I Wound", "E Scar", "I Scar", "E Both", "I Both" };
             string characterSuffix = id.Replace("injuries-", "");
-            plugin.ghost.EchoText("Injuries for " + characterSuffix);
+
             string[] cmds = {
                 "_injury 0 -" + characterSuffix,
                 "_injury 3 -" + characterSuffix,
@@ -277,10 +277,6 @@ namespace DynamicWindows
             bar.Size = new Size(180, 18);
             bar.Value = Math.Min(bar.Maximum, Math.Max(bar.Minimum, value));
             window.formBody.Controls.Add(bar);
-        }
-        else
-        {
-            plugin.ghost.EchoText("[DEBUG] No progressBar node found for " + id);
         }
     }
 

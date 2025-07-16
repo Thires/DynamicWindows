@@ -167,11 +167,14 @@ namespace DynamicWindows
 
             foreach (var pair in plugin.positionList)
             {
-                XmlElement pos = xml.CreateElement("Position");
-                pos.SetAttribute("id", prefix + pair.Key);
-                pos.SetAttribute("X", pair.Value.X.ToString());
-                pos.SetAttribute("Y", pair.Value.Y.ToString());
-                root.AppendChild(pos);
+                if (!pair.Key.Contains(".injuries-"))
+                {
+                    XmlElement pos = xml.CreateElement("Position");
+                    pos.SetAttribute("id", prefix + pair.Key);
+                    pos.SetAttribute("X", pair.Value.X.ToString());
+                    pos.SetAttribute("Y", pair.Value.Y.ToString());
+                    root.AppendChild(pos);
+                }
             }
 
             xml.Save(Path.Combine(configPath, "DynamicWindows.xml"));
