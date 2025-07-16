@@ -38,6 +38,8 @@ namespace DynamicWindows
             plugin.formback = Color.Black;
             plugin.bStowContainer = false;
             plugin.bPluginEnabled = true;
+            plugin.bDisableOtherInjuries = false;
+            plugin.bDisableSelfInjuries = false;
             plugin.ignorelist.Clear();
             plugin.positionList.Clear();
 
@@ -63,6 +65,12 @@ namespace DynamicWindows
                         break;
                     case "plugin":
                         bool.TryParse(element.GetAttribute("pluginenabled"), out plugin.bPluginEnabled);
+                        break;
+                    case "disableOtherInjuries":
+                        bool.TryParse(element.GetAttribute("enabled"), out plugin.bDisableOtherInjuries);
+                        break;
+                    case "disableSelfInjuries":
+                        bool.TryParse(element.GetAttribute("enabled"), out plugin.bDisableSelfInjuries);
                         break;
                 }
             }
@@ -146,6 +154,8 @@ namespace DynamicWindows
             AddConfig("background", "color", ColorTranslator.ToHtml(plugin.formback));
             AddConfig("stowcontainer", "enabled", plugin.bStowContainer.ToString());
             AddConfig("plugin", "pluginenabled", plugin.bPluginEnabled.ToString());
+            AddConfig("disableOtherInjuries", "enabled", plugin.bDisableOtherInjuries.ToString());
+            AddConfig("disableSelfInjuries", "enabled", plugin.bDisableSelfInjuries.ToString());
 
             foreach (string id in plugin.ignorelist)
             {

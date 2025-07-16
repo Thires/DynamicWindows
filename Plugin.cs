@@ -27,6 +27,8 @@ namespace DynamicWindows
         private InjuriesWindow injuriesWindow;
         private InjuriesOthersWindow injuriesOthersWindow;
         private readonly Dictionary<string, InjuriesOthersWindow> injuryWindows = new Dictionary<string, InjuriesOthersWindow>();
+        public bool bDisableOtherInjuries = true;
+        public bool bDisableSelfInjuries = true;
 
 
         public LoadSave loadSave;
@@ -107,6 +109,35 @@ namespace DynamicWindows
                 return "";
             }
 
+            if (Text.Equals("/toggleInjuries", StringComparison.OrdinalIgnoreCase))
+            {
+                this.bDisableSelfInjuries = !this.bDisableSelfInjuries;
+                this.ghost.EchoText("[Plugin]: Other window is now " +
+                    (this.bDisableSelfInjuries ? "disabled" : "enabled"));
+                if (this.loadSave != null) this.loadSave.Save();
+                return "";
+            }
+
+            if (Text.Equals("/toggleOtherInjuries", StringComparison.OrdinalIgnoreCase))
+            {
+                this.bDisableOtherInjuries = !this.bDisableOtherInjuries;
+                this.ghost.EchoText("[Plugin]: Other injuries windows are now " +
+                    (this.bDisableOtherInjuries ? "disabled" : "enabled"));
+                if (this.loadSave != null) this.loadSave.Save();
+                return "";
+            }
+
+            if (Text.Equals("/injurieshelp", StringComparison.OrdinalIgnoreCase) || Text.Equals("/injurieswindowshelp", StringComparison.OrdinalIgnoreCase) || Text.Equals("/dynamicwindows help", StringComparison.OrdinalIgnoreCase))
+            {
+                this.ghost.EchoText("Dynamic Windows Injuries Options Help:");
+                this.ghost.EchoText("  /injurieswindow         - Re-opens your self Injuries window if closed or lost.");
+                this.ghost.EchoText("  /toggleInjuries         - Enables or disables showing your own Injuries window.");
+                this.ghost.EchoText("  /toggleOtherInjuries    - Enables or disables all 'other injuries' windows for other players.");
+                this.ghost.EchoText("  /debugwindows           - Displays the number of open windows and their names.");
+                this.ghost.EchoText("  (All commands are case-insensitive and can be used at any time.)");
+                return "";
+            }
+
             return Text;
         }
 
@@ -159,9 +190,10 @@ namespace DynamicWindows
                     this.Parse_xml_streamwindow(xmlElement);
                         continue;
                     case "openDialog":
-
                             if (id.StartsWith("injuries-"))
                             {
+                                if (this.bDisableOtherInjuries)
+                                    break;
                                 string title = xmlElement.GetAttribute("title");
                                 injuriesOthersWindow.Create(id, title);
                                 break;
@@ -169,6 +201,8 @@ namespace DynamicWindows
 
                             if (id == "injuries" && this.injuriesWindow != null)
                             {
+                                if (this.bDisableSelfInjuries)
+                                    break;
                                 this.injuriesWindow.Create(xmlElement);
                                 continue;
                             }
@@ -177,12 +211,16 @@ namespace DynamicWindows
                         case "dialogData":
                             if (id.StartsWith("injuries-"))
                             {
+                                if (this.bDisableOtherInjuries)
+                                    break;
                                 injuriesOthersWindow.Update(id, xmlElement);
                                 break;
                             }
                             
                             if (id == "injuries")
                             {
+                                if (this.bDisableSelfInjuries)
+                                    break;
                                 injuriesWindow.Update(xmlElement);
                                 continue;
                             }
