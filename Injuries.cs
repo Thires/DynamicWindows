@@ -12,6 +12,8 @@ namespace DynamicWindows
         private readonly Plugin plugin;
         private Panel injurySilhouettePanel;
         internal static string currentInjuryCommand = "_injury 0 -1";
+
+        private ToolTip woundTip = new ToolTip();
         //private Dictionary<string, HashSet<string>> woundData = new Dictionary<string, HashSet<string>>();
 
         private readonly Dictionary<string, Point> injuryMarkerPositions = new Dictionary<string, Point>
@@ -20,19 +22,19 @@ namespace DynamicWindows
             { "neck",     new Point(52,  28) },
             { "chest",    new Point(52,  48) },
             { "abdomen",  new Point(52,  68) },
-            { "back",     new Point(102,  46) },
+            { "back",     new Point(102,  48) },
 
             { "leftArm",  new Point(25,  48) },
             { "rightArm", new Point(80,  48) },
-            { "leftHand", new Point(8,   82) },
-            { "rightHand",new Point(92,  82) },
+            { "leftHand", new Point(8,   92) },
+            { "rightHand",new Point(92,  92) },
 
-            { "leftLeg",  new Point(34, 118) },
-            { "rightLeg", new Point(70, 118) },
+            { "leftLeg",  new Point(34, 125) },
+            { "rightLeg", new Point(70, 125) },
 
             { "leftEye",  new Point(4,  2) },
             { "rightEye", new Point(92,  2) },
-            { "nsys",     new Point(4, 46) }
+            { "nsys",     new Point(4, 48) }
         };
 
 
@@ -42,19 +44,19 @@ namespace DynamicWindows
             { "neck",     new Point(52,  28) },
             { "chest",    new Point(52,  48) },
             { "abdomen",  new Point(52,  68) },
-            { "back",     new Point(102,  46) },
+            { "back",     new Point(102,  48) },
 
             { "leftArm",  new Point(25,  48) },
             { "rightArm", new Point(80,  48) },
-            { "leftHand", new Point(8,   82) },
-            { "rightHand",new Point(92,  82) },
+            { "leftHand", new Point(8,   92) },
+            { "rightHand",new Point(92,  92) },
 
-            { "leftLeg",  new Point(34, 118) },
-            { "rightLeg", new Point(70, 118) },
+            { "leftLeg",  new Point(34, 125) },
+            { "rightLeg", new Point(70, 125) },
 
             { "leftEye",  new Point(4,  2) },
             { "rightEye", new Point(92,  2) },
-            { "nsys",     new Point(4, 46) }
+            { "nsys",     new Point(4, 48) }
         };
 
         public InjuriesWindow(Plugin plugin)
@@ -84,13 +86,11 @@ namespace DynamicWindows
             window.MdiParent = plugin.pForm;
             window.Text = "Injuries";
             window.Name = "injuries";
-            //window.ClientSize = new Size(190, 210);
             window.ClientSize = new Size(230, 260);
             window.StartPosition = FormStartPosition.Manual;
             window.Location = plugin.positionList.ContainsKey("injuries")
                 ? plugin.positionList["injuries"]
                 : new Point(100, 100);
-            window.TopMost = true;
 
             window.LocationChanged += delegate
             {
@@ -106,7 +106,11 @@ namespace DynamicWindows
             injurySilhouettePanel.Size = new Size(120, 200); // was 90x150
             injurySilhouettePanel.Location = new Point(10, 10); // more padding
             injurySilhouettePanel.BackColor = Color.Transparent;
+
+
+
             injurySilhouettePanel.BackgroundImage = Properties.Resources.body_image;
+
             injurySilhouettePanel.BackgroundImageLayout = ImageLayout.Zoom;
             window.formBody.Controls.Add(injurySilhouettePanel);
 
@@ -180,6 +184,10 @@ namespace DynamicWindows
             if (injurySilhouettePanel == null && window.formBody.Controls.ContainsKey("injurySilhouette"))
                 injurySilhouettePanel = (Panel)window.formBody.Controls["injurySilhouette"];
 
+            injurySilhouettePanel.GetType()
+    .GetProperty("DoubleBuffered", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
+    ?.SetValue(injurySilhouettePanel, true, null);
+
             List<string> activeWoundTypes = GetActiveWoundTypes();
             XmlNodeList images = elem.GetElementsByTagName("image");
 
@@ -194,11 +202,27 @@ namespace DynamicWindows
                 foreach (XmlElement image in images)
                 {
                     string woundName = image.GetAttribute("name");
+                    string part = image.GetAttribute("id");
+                    //string severity = "0";
+                    string prefix = GetInjuryPrefix();
+
                     if (activeWoundTypes.Contains(woundName))
                     {
                         foundMatch = true;
                     }
+
+                    // to make vars
+                    //if (part == woundName)
+                    //    severity = "0";
+                    //else
+                    //    severity = woundName.Substring(woundName.Length - 1);
+
+                    //plugin.ghost.set_Variable($"Injuries.{prefix}.{part}", severity);
+                    //plugin.ghost.EchoText($"Injuries.{prefix}.{part} " + severity);
+
                 }
+
+                injurySilhouettePanel.SuspendLayout();
 
                 if (!foundMatch)
                 {
@@ -216,7 +240,7 @@ namespace DynamicWindows
 
                         string text = ctrl.Text;
 
-                        // Remove any marker that matches a wound type we're displaying
+                        // Remove any marker that matches a wound type
                         if ((text == "1" && (activeWoundTypes.Contains("Injury1") || activeWoundTypes.Contains("Scar1") || activeWoundTypes.Contains("Nsys1"))) ||
                             (text == "2" && (activeWoundTypes.Contains("Injury2") || activeWoundTypes.Contains("Scar2") || activeWoundTypes.Contains("Nsys2"))) ||
                             (text == "3" && (activeWoundTypes.Contains("Injury3") || activeWoundTypes.Contains("Scar3") || activeWoundTypes.Contains("Nsys3"))))
@@ -314,6 +338,19 @@ namespace DynamicWindows
                             marker.BorderStyle = BorderStyle.FixedSingle;
                             marker.Text = text;
                             marker.Location = location;
+                            string tooltipText = image.HasAttribute("tooltip") ? image.GetAttribute("tooltip") : null;
+                            string cmdText = image.HasAttribute("cmd") ? image.GetAttribute("cmd") : null;
+
+                            if (!string.IsNullOrEmpty(tooltipText))
+                                woundTip.SetToolTip(marker, tooltipText);
+                            if (!string.IsNullOrEmpty(cmdText))
+                            {
+                                marker.Cursor = Cursors.Hand;
+                                marker.Click += delegate (object sender, EventArgs e)
+                                {
+                                    plugin.ghost.SendText(cmdText);
+                                };
+                            }
 
                             // Set text color based on severity
                             if (text == "1")
@@ -331,8 +368,10 @@ namespace DynamicWindows
                     injurySilhouettePanel.Invalidate();
                     injurySilhouettePanel.Refresh();
                 }
-
             }
+
+            injurySilhouettePanel.ResumeLayout();
+            injurySilhouettePanel.Invalidate();
 
             // Health bar update — always runs
             foreach (XmlElement progress in elem.GetElementsByTagName("progressBar"))
@@ -349,6 +388,20 @@ namespace DynamicWindows
                         }
                     }
                 }
+            }
+        }
+
+        private string GetInjuryPrefix()
+        {
+            switch (currentInjuryCommand)
+            {
+                case "_injury 0 -1": return "EWound";
+                case "_injury 1 -1": return "EScar";
+                case "_injury 2 -1": return "EBoth";
+                case "_injury 3 -1": return "IWound";
+                case "_injury 4 -1": return "IScar";
+                case "_injury 5 -1": return "IBoth";
+                default: return "Unknown";
             }
         }
 

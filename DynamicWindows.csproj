@@ -56,6 +56,8 @@
     </Compile>
     <Compile Include="helpWindows.cs" />
     <Compile Include="Injuries.cs" />
+    <Compile Include="InjuriesOthers.cs" />
+    <Compile Include="LoadSave.cs" />
     <Compile Include="SkinnedMDIChild.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -93,6 +95,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\body_image.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\skra.png" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
 </Project>

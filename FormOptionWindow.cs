@@ -1,6 +1,7 @@
 ﻿using System;
 using System.ComponentModel;
 using System.Drawing;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace DynamicWindows
@@ -192,16 +193,20 @@ namespace DynamicWindows
 
     private void CheckBoxDisablePlugin_CheckedChanged(object sender, EventArgs e)
     {
-      if (this.checkBoxDisablePlugin.Checked)
-      {
-        this._plugin.bPluginEnabled = false;
-        this._plugin.documents.Clear();
-        foreach (Form form in this._plugin.forms)
-          form.Close();
-        this._plugin.forms.Clear();
-      }
-      else
-        this._plugin.bPluginEnabled = true;
+        if (this.checkBoxDisablePlugin.Checked)
+        {
+            this._plugin.bPluginEnabled = false;
+            this._plugin.documents.Clear();
+
+            foreach (Form form in this._plugin.forms.Cast<Form>().ToList())
+                form.Close();
+
+            this._plugin.forms.Clear();
+        }
+        else
+        {
+            this._plugin.bPluginEnabled = true;
+        }
     }
 
     private void ButtonForeground_Click(object sender, EventArgs e)
@@ -236,81 +241,92 @@ namespace DynamicWindows
 
     private void ButtonClose_Click(object sender, EventArgs e)
     {
-      this._plugin.SaveConfig();
-      this.Close();
+        this._plugin.loadSave.Save();
+        this.Close();
     }
 
-        private void Button_ignore_Click(object sender, EventArgs e)
-        {
-            if (listbox_openwindows.SelectedIndex == -1)
-                return;
-
-            string selectedName = listbox_openwindows.SelectedItem.ToString();
-            Form form1 = null;
-
-            foreach (Form form2 in this._plugin.forms)
-            {
-                if (form2.Name == selectedName)
-                {
-                    form1 = form2;
-                    break;
-                }
-            }
-
-            if (form1 == null)
-                return;
-
-            if (!this._plugin.ignorelist.Contains(form1.Name))
-            {
-                this.listBox_ignores.Items.Add(form1.Name);
-                this._plugin.ignorelist.Add(form1.Name);
-            }
-
-            if (form1 is SkinnedMDIChild skinnedForm)
-                this._plugin.forms.Remove(skinnedForm);
-
-            form1.Close();
-            this.listbox_openwindows.Items.Remove(form1.Name);
-
-            // Optional: save immediately
-            this._plugin.SaveConfig();
-        }
-
-
-        private void Button_closewindow_Click(object sender, EventArgs e)
-        {
-            Form form1 = null;
-            foreach (Form form2 in this._plugin.forms)
-            {
-                if (form2.Name.Equals(this.listbox_openwindows.Items[this.listbox_openwindows.SelectedIndex].ToString()))
-                {
-                    form1 = form2;
-                    break;
-                }
-            }
-            if (form1 == null)
-                return;
-
-            this.listbox_openwindows.Items.Remove(form1.Name);
-            this._plugin.forms.Remove(form1);
-            form1.Close();
-        }
-
-
-        private void Button_clearall_Click(object sender, EventArgs e)
+    private void Button_ignore_Click(object sender, EventArgs e)
     {
-      this._plugin.ignorelist.Clear();
-      this.listBox_ignores.Items.Clear();
+        if (listbox_openwindows.SelectedIndex == -1)
+            return;
+
+        string selectedName = listbox_openwindows.SelectedItem.ToString();
+        Form form1 = null;
+
+        foreach (Form form2 in this._plugin.forms)
+        {
+            if (form2.Name == selectedName)
+            {
+                form1 = form2;
+                break;
+            }
+        }
+
+        if (form1 == null)
+            return;
+
+        if (!this._plugin.ignorelist.Contains(form1.Name))
+        {
+            this.listBox_ignores.Items.Add(form1.Name);
+            this._plugin.ignorelist.Add(form1.Name);
+        }
+
+        if (form1 is SkinnedMDIChild skinnedForm)
+            this._plugin.forms.Remove(skinnedForm);
+
+        form1.Close();
+        this.listbox_openwindows.Items.Remove(form1.Name);
+
+        // Optional: save immediately
+        this._plugin.loadSave.Save();
     }
+
+    private void Button_closewindow_Click(object sender, EventArgs e)
+    {
+        Form form1 = null;
+        foreach (Form form2 in this._plugin.forms)
+        {
+            if (form2.Name.Equals(this.listbox_openwindows.Items[this.listbox_openwindows.SelectedIndex].ToString()))
+            {
+                form1 = form2;
+                break;
+            }
+        }
+        if (form1 == null)
+            return;
+
+        this.listbox_openwindows.Items.Remove(form1.Name);
+        this._plugin.forms.Remove(form1);
+        form1.Close();
+    }
+
+    private void Button_clearall_Click(object sender, EventArgs e)
+    {
+            string prefix = this._plugin.characterName + ".";
+
+            for (int i = this._plugin.ignorelist.Count - 1; i >= 0; i--)
+            {
+                if (this._plugin.ignorelist[i] is string id && id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    this._plugin.ignorelist.RemoveAt(i);
+                }
+            }
+
+            listBox_ignores.Items.Clear();
+
+        }
 
     private void Button_clear_Click(object sender, EventArgs e)
     {
         if (listBox_ignores.SelectedIndex >= 0)
         {
-            string str = (string)listBox_ignores.Items[listBox_ignores.SelectedIndex];
-            this._plugin.ignorelist.Remove(str);
-            listBox_ignores.Items.Remove(str);
+            string selected = (string)listBox_ignores.Items[listBox_ignores.SelectedIndex];
+            string fullId = this._plugin.characterName + "." + selected;
+
+            this._plugin.ignorelist.Remove(fullId);
+            listBox_ignores.Items.Remove(selected);
+
         }
     }
-    }
+  }
 }
