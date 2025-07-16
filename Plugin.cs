@@ -50,7 +50,7 @@ namespace DynamicWindows
 
         public string Name => "Dynamic Windows";
 
-        public string Version => "2.2.1";
+        public string Version => "2.2.2";
 
         public string Author => "Multiple Developers";
 
@@ -102,8 +102,8 @@ namespace DynamicWindows
                     this.ignorelist.Remove(match);
                 }
 
-                //this.injuriesWindow.Create(null);
-                this.ghost.SendText("_injury 0 -1");
+                this.injuriesWindow.Create(null);
+                //this.ghost.SendText("_injury 0 -1");
                 return "";
             }
 

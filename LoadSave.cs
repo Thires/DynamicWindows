@@ -167,7 +167,8 @@ namespace DynamicWindows
 
             foreach (var pair in plugin.positionList)
             {
-                if (!pair.Key.Contains(".injuries-"))
+                // don't other injuries-numbers positions
+                if (!pair.Key.StartsWith("injuries-"))
                 {
                     XmlElement pos = xml.CreateElement("Position");
                     pos.SetAttribute("id", prefix + pair.Key);
