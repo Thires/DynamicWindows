@@ -67,10 +67,10 @@ namespace DynamicWindows
                         bool.TryParse(element.GetAttribute("pluginenabled"), out plugin.bPluginEnabled);
                         break;
                     case "disableOtherInjuries":
-                        bool.TryParse(element.GetAttribute("enabled"), out plugin.bDisableOtherInjuries);
+                        bool.TryParse(element.GetAttribute("otherenabled"), out plugin.bDisableOtherInjuries);
                         break;
                     case "disableSelfInjuries":
-                        bool.TryParse(element.GetAttribute("enabled"), out plugin.bDisableSelfInjuries);
+                        bool.TryParse(element.GetAttribute("selfenabled"), out plugin.bDisableSelfInjuries);
                         break;
                 }
             }
@@ -81,7 +81,7 @@ namespace DynamicWindows
                 string id = ignore.GetAttribute("id");
                 if (id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 {
-                    plugin.ignorelist.Add(id.Substring(prefix.Length));  // e.g., "injuries"
+                    plugin.ignorelist.Add(id.Substring(prefix.Length));
                 }
             }
 
@@ -154,8 +154,8 @@ namespace DynamicWindows
             AddConfig("background", "color", ColorTranslator.ToHtml(plugin.formback));
             AddConfig("stowcontainer", "enabled", plugin.bStowContainer.ToString());
             AddConfig("plugin", "pluginenabled", plugin.bPluginEnabled.ToString());
-            AddConfig("disableOtherInjuries", "enabled", plugin.bDisableOtherInjuries.ToString());
-            AddConfig("disableSelfInjuries", "enabled", plugin.bDisableSelfInjuries.ToString());
+            AddConfig("disableOtherInjuries", "otherenabled", plugin.bDisableOtherInjuries.ToString());
+            AddConfig("disableSelfInjuries", "selfenabled", plugin.bDisableSelfInjuries.ToString());
 
             foreach (string id in plugin.ignorelist)
             {

@@ -34,8 +34,10 @@ namespace DynamicWindows
       this.InitializeComponent();
       foreach (Control control in this._plugin.forms)
         this.listbox_openwindows.Items.Add((object) control.Name);
+      
       foreach (string str in this._plugin.ignorelist)
         this.listBox_ignores.Items.Add((object) str);
+
       this.textBox_Color.ForeColor = this._plugin.formfore;
       this.textBox_Color.BackColor = this._plugin.formback;
       this.checkBoxDisablePlugin.Checked = !this._plugin.bPluginEnabled;
@@ -325,43 +327,46 @@ namespace DynamicWindows
         this.Close();
     }
 
-    private void Button_ignore_Click(object sender, EventArgs e)
-    {
-        if (listbox_openwindows.SelectedIndex == -1)
-            return;
-
-        string selectedName = listbox_openwindows.SelectedItem.ToString();
-        Form form1 = null;
-
-        foreach (Form form2 in this._plugin.forms)
+        private void Button_ignore_Click(object sender, EventArgs e)
         {
-            if (form2.Name == selectedName)
+            if (listbox_openwindows.SelectedIndex == -1)
+                return;
+
+            string selectedName = listbox_openwindows.SelectedItem.ToString();
+            Form form1 = null;
+
+            foreach (Form form2 in this._plugin.forms)
             {
-                form1 = form2;
-                break;
+                if (form2.Name == selectedName)
+                {
+                    form1 = form2;
+                    break;
+                }
             }
+
+            if (form1 == null)
+                return;
+
+            string ignoreId = form1.Name;
+
+            if (!this._plugin.ignorelist.Contains(ignoreId))
+            {
+                this.listBox_ignores.Items.Add(ignoreId);
+                this._plugin.ignorelist.Add(ignoreId);
+            }
+
+            if (form1 is SkinnedMDIChild skinnedForm)
+                this._plugin.forms.Remove(skinnedForm);
+
+            form1.Close();
+            this.listbox_openwindows.Items.Remove(form1.Name);
+
+            // Optional: save immediately
+            this._plugin.loadSave.Save();
         }
 
-        if (form1 == null)
-            return;
 
-        if (!this._plugin.ignorelist.Contains(form1.Name))
-        {
-            this.listBox_ignores.Items.Add(form1.Name);
-            this._plugin.ignorelist.Add(form1.Name);
-        }
-
-        if (form1 is SkinnedMDIChild skinnedForm)
-            this._plugin.forms.Remove(skinnedForm);
-
-        form1.Close();
-        this.listbox_openwindows.Items.Remove(form1.Name);
-
-        // Optional: save immediately
-        this._plugin.loadSave.Save();
-    }
-
-    private void Button_closewindow_Click(object sender, EventArgs e)
+        private void Button_closewindow_Click(object sender, EventArgs e)
     {
         Form form1 = null;
         foreach (Form form2 in this._plugin.forms)
@@ -380,10 +385,10 @@ namespace DynamicWindows
         form1.Close();
     }
 
-    private void Button_clearall_Click(object sender, EventArgs e)
-    {
+        private void Button_clearall_Click(object sender, EventArgs e)
+        {
+            // Remove only current character's ignores
             string prefix = this._plugin.characterName + ".";
-
             for (int i = this._plugin.ignorelist.Count - 1; i >= 0; i--)
             {
                 if (this._plugin.ignorelist[i] is string id && id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
@@ -392,22 +397,28 @@ namespace DynamicWindows
                 }
             }
 
-            listBox_ignores.Items.Clear();
-
+            // Remove only those from UI
+            for (int i = listBox_ignores.Items.Count - 1; i >= 0; i--)
+            {
+                string item = (string)listBox_ignores.Items[i];
+                if (item.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                {
+                    listBox_ignores.Items.RemoveAt(i);
+                }
+            }
         }
 
-    private void Button_clear_Click(object sender, EventArgs e)
-    {
-        if (listBox_ignores.SelectedIndex >= 0)
+
+        private void Button_clear_Click(object sender, EventArgs e)
         {
-            string selected = (string)listBox_ignores.Items[listBox_ignores.SelectedIndex];
-            string fullId = this._plugin.characterName + "." + selected;
-
-            this._plugin.ignorelist.Remove(fullId);
-            listBox_ignores.Items.Remove(selected);
-
+            if (listBox_ignores.SelectedIndex >= 0)
+            {
+                string selected = (string)listBox_ignores.Items[listBox_ignores.SelectedIndex];
+                this._plugin.ignorelist.Remove(selected);
+                listBox_ignores.Items.Remove(selected);
+            }
         }
-    }
+
 
         private void cbDisableOtherInjuries_CheckedChanged(object sender, EventArgs e)
         {
