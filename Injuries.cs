@@ -106,11 +106,7 @@ namespace DynamicWindows
             injurySilhouettePanel.Size = new Size(120, 200); // was 90x150
             injurySilhouettePanel.Location = new Point(10, 10); // more padding
             injurySilhouettePanel.BackColor = Color.Transparent;
-
-
-
             injurySilhouettePanel.BackgroundImage = Properties.Resources.body_image;
-
             injurySilhouettePanel.BackgroundImageLayout = ImageLayout.Zoom;
             window.formBody.Controls.Add(injurySilhouettePanel);
 
