@@ -38,8 +38,8 @@ namespace DynamicWindows
             plugin.formback = Color.Black;
             plugin.bStowContainer = false;
             plugin.bPluginEnabled = true;
-            plugin.bDisableOtherInjuries = false;
-            plugin.bDisableSelfInjuries = false;
+            plugin.bDisableOtherInjuries = true;
+            plugin.bDisableSelfInjuries = true;
             plugin.ignorelist.Clear();
             plugin.positionList.Clear();
 
