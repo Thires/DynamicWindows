@@ -92,6 +92,9 @@ namespace DynamicWindows
 
             if (Text.Equals("/injurieswindow", StringComparison.OrdinalIgnoreCase))
             {
+                if (!this.bDisableSelfInjuries)
+                {
+
                 this.ghost.EchoText("Re-opening injuries window...");
 
                 string id = "injuries";
@@ -100,12 +103,11 @@ namespace DynamicWindows
                     .FirstOrDefault(x => x.Equals(id, StringComparison.OrdinalIgnoreCase));
 
                 if (match != null)
-                {
                     this.ignorelist.Remove(match);
-                }
 
                 this.injuriesWindow.Create(null);
                 //this.ghost.SendText("_injury 0 -1");
+                }
                 return "";
             }
 
