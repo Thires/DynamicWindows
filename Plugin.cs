@@ -52,7 +52,7 @@ namespace DynamicWindows
 
         public string Name => "Dynamic Windows";
 
-        public string Version => "2.2.3";
+        public string Version => "2.2.4";
 
         public string Author => "Multiple Developers";
 
@@ -292,11 +292,6 @@ namespace DynamicWindows
                     this.characterName = this.ghost.get_Variable("charactername");
                     this.loadSave = new LoadSave(this, this.configPath, this.characterName);
                     this.loadSave.Load();
-
-                    if (!this.loadSave.IsIgnored("injuries"))
-                    {
-                        this.ghost.SendText(InjuriesWindow.currentInjuryCommand);
-                    }
                 }
             }
 
