@@ -109,8 +109,8 @@ namespace DynamicWindows
 
 
 
-            //injurySilhouettePanel.BackgroundImage = Properties.Resources.body_image;
-            injurySilhouettePanel.BackgroundImage = (Bitmap)Properties.Resources.ResourceManager.GetObject("skra");
+            injurySilhouettePanel.BackgroundImage = Properties.Resources.body_image;
+            //injurySilhouettePanel.BackgroundImage = (Bitmap)Properties.Resources.ResourceManager.GetObject("skra");
 
             injurySilhouettePanel.BackgroundImageLayout = ImageLayout.Zoom;
             window.formBody.Controls.Add(injurySilhouettePanel);
