@@ -95,7 +95,7 @@ namespace DynamicWindows
 
             for (int i = 0; i < labels.Length; i++)
                 {
-                    cbRadio radio = new cbRadio();
+                    CbRadio radio = new CbRadio();
                     radio.Name = "injr_" + i;
                     radio.Text = labels[i];
                     radio.group = "injureMode";
@@ -106,7 +106,7 @@ namespace DynamicWindows
 
                     radio.CheckedChanged += delegate (object sender, EventArgs e)
                     {
-                        cbRadio r = (cbRadio)sender;
+                        CbRadio r = (CbRadio)sender;
                         if (r.Checked)
                         {
                             windowInjuryCommands[id] = r.command;
@@ -144,14 +144,14 @@ namespace DynamicWindows
             if (radios != null && radios.Count > 0)
             {
                 for (int i = window.formBody.Controls.Count - 1; i >= 0; i--)
-                    if (window.formBody.Controls[i] is cbRadio)
+                    if (window.formBody.Controls[i] is CbRadio)
                         window.formBody.Controls.RemoveAt(i);
 
                 int y = 10;
                 string lastCheckedCmd = null;
                 foreach (XmlElement radioElem in radios)
                 {
-                    cbRadio radio = new cbRadio();
+                    CbRadio radio = new CbRadio();
                     radio.Text = radioElem.GetAttribute("text");
                     radio.command = radioElem.GetAttribute("cmd");
                     radio.group = radioElem.GetAttribute("group");
@@ -163,7 +163,7 @@ namespace DynamicWindows
                     string thisId = id;
                     radio.CheckedChanged += delegate (object sender, EventArgs e)
                     {
-                        cbRadio r = (cbRadio)sender;
+                        CbRadio r = (CbRadio)sender;
                         if (r.Checked)
                         {
                             windowInjuryCommands[thisId] = r.command;

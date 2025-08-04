@@ -109,8 +109,8 @@ namespace DynamicWindows
 
 
 
-            injurySilhouettePanel.BackgroundImage = Properties.Resources.body_image;
-            //injurySilhouettePanel.BackgroundImage = (Bitmap)Properties.Resources.ResourceManager.GetObject("skra");
+            //injurySilhouettePanel.BackgroundImage = Properties.Resources.body_image;
+            injurySilhouettePanel.BackgroundImage = (Bitmap)Properties.Resources.ResourceManager.GetObject("skra");
 
             injurySilhouettePanel.BackgroundImageLayout = ImageLayout.Zoom;
             window.formBody.Controls.Add(injurySilhouettePanel);
@@ -120,7 +120,7 @@ namespace DynamicWindows
             int y = 10;
             for (int i = 0; i < radioLabels.Length; i++)
             {
-                cbRadio radio = new cbRadio();
+                CbRadio radio = new CbRadio();
                 radio.Name = "injr_" + i;
                 radio.Text = radioLabels[i];
                 radio.group = "injureMode";
@@ -131,7 +131,7 @@ namespace DynamicWindows
 
                 radio.CheckedChanged += delegate (object sender, EventArgs e)
                 {
-                    cbRadio r = (cbRadio)sender;
+                    CbRadio r = (CbRadio)sender;
                     if (r.Checked)
                     {
                         currentInjuryCommand = r.command;
