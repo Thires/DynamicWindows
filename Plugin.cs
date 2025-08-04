@@ -52,7 +52,7 @@ namespace DynamicWindows
 
         public string Name => "Dynamic Windows";
 
-        public string Version => "2.2.4";
+        public string Version => "2.2.5";
 
         public string Author => "Multiple Developers";
 
@@ -651,6 +651,21 @@ namespace DynamicWindows
                 return;
             dyndialog.TopMost = true;
             dyndialog.ShowForm();
+            if (xelem.GetAttribute("id") == "confirm")
+            {
+                Timer bringToFrontTimer = new Timer();
+                bringToFrontTimer.Interval = 10;
+                bringToFrontTimer.Tick += (s, e) =>
+                {
+                    bringToFrontTimer.Stop();
+                    bringToFrontTimer.Dispose();
+
+                    dyndialog.BringToFront();
+                    dyndialog.Focus();
+                };
+                bringToFrontTimer.Start();
+            }
+
         }
 
         private void Parse_container(XmlElement elem)
@@ -1032,7 +1047,7 @@ namespace DynamicWindows
 
         private void Parse_radio_button(XmlElement cbx, SkinnedMDIChild dyndialog)
         {
-            cbRadio cbRadio = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new cbRadio() : (cbRadio)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
+            CbRadio cbRadio = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new CbRadio() : (CbRadio)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
             if (cbRadio == null)
                 return;
             cbRadio.Name = cbx.GetAttribute("id");
@@ -1200,10 +1215,10 @@ namespace DynamicWindows
                 {
                     switch (control)
                     {
-                        case cbRadio _:
+                        case CbRadio _:
                             if (((RadioButton)control).Checked)
                             {
-                                str1 = str1.Replace("%" + ((cbRadio)control).group + "%", ((cbRadio)control).command + " ");
+                                str1 = str1.Replace("%" + ((CbRadio)control).group + "%", ((CbRadio)control).command + " ");
                                 continue;
                             }
                             continue;
@@ -1309,10 +1324,10 @@ namespace DynamicWindows
                     {
                         switch (control)
                         {
-                            case cbRadio _:
+                            case CbRadio _:
                                 if (((RadioButton)control).Checked)
                                 {
-                                    str1 = str1.Replace("%" + ((cbRadio)control).group + "%", ((cbRadio)control).command + " ");
+                                    str1 = str1.Replace("%" + ((CbRadio)control).group + "%", ((CbRadio)control).command + " ");
                                     continue;
                                 }
                                 continue;
@@ -1358,7 +1373,7 @@ namespace DynamicWindows
 
         public void CbRadioSelect(object sender, EventArgs e)
         {
-            cbRadio clickedRadio = (cbRadio)sender;
+            CbRadio clickedRadio = (CbRadio)sender;
 
             // Only proceed if the radio was just checked and the event is from the user
             if (!clickedRadio.Checked || !clickedRadio.Focused)
@@ -1367,7 +1382,7 @@ namespace DynamicWindows
             // Uncheck all radios in the same group
             foreach (Control control in clickedRadio.Parent.Controls)
             {
-                if (control is cbRadio radio && radio.group == clickedRadio.group)
+                if (control is CbRadio radio && radio.group == clickedRadio.group)
                 {
                     radio.Checked = (radio == clickedRadio);
                 }
