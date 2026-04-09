@@ -112,19 +112,19 @@ namespace DynamicWindows.Properties
             }
         }
 
-        internal static Bitmap body_image
+        internal static Bitmap body_image_ext
         {
             get
             {
-                return (Bitmap)Resources.ResourceManager.GetObject("body_image", Resources.resourceCulture);
+                return (Bitmap)Resources.ResourceManager.GetObject("body_image_ext", Resources.resourceCulture);
             }
         }
 
-        internal static Bitmap skra
+        internal static Bitmap body_image_int
         {
             get
             {
-                return (Bitmap)Resources.ResourceManager.GetObject("skra", Resources.resourceCulture);
+                return (Bitmap)Resources.ResourceManager.GetObject("body_image_int", Resources.resourceCulture);
             }
         }
 
