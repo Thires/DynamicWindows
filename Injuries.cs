@@ -34,7 +34,9 @@ namespace DynamicWindows
 
             { "leftEye",  new Point(4,  2) },
             { "rightEye", new Point(92,  2) },
-            { "nsys",     new Point(4, 48) }
+            { "nsys",     new Point(4, 48) },
+
+            { "rightFoot", new Point(92, 150) }
         };
 
 
@@ -56,12 +58,23 @@ namespace DynamicWindows
 
             { "leftEye",  new Point(4,  2) },
             { "rightEye", new Point(92,  2) },
-            { "nsys",     new Point(4, 48) }
+            { "nsys",     new Point(4, 48) },
+
+            { "rightFoot", new Point(92, 150) }
         };
 
         public InjuriesWindow(Plugin plugin)
         {
             this.plugin = plugin;
+        }
+
+        /// <summary>Returns the correct body image based on whether the current mode is external or internal.</summary>
+        private Image GetBodyImage(string command)
+        {
+            // Internal modes: _injury 3, 4, 5
+            bool isInternal = command == "_injury 3 -1" || command == "_injury 4 -1" || command == "_injury 5 -1";
+            string resourceName = isInternal ? "body_image_int" : "body_image_ext";
+            return (Image)Properties.Resources.ResourceManager.GetObject(resourceName);
         }
 
         public void Create(XmlElement elem)
@@ -110,7 +123,7 @@ namespace DynamicWindows
 
 
             //injurySilhouettePanel.BackgroundImage = Properties.Resources.body_image;
-            injurySilhouettePanel.BackgroundImage = (Bitmap)Properties.Resources.ResourceManager.GetObject("skra");
+            injurySilhouettePanel.BackgroundImage = GetBodyImage(currentInjuryCommand);
 
             injurySilhouettePanel.BackgroundImageLayout = ImageLayout.Zoom;
             window.formBody.Controls.Add(injurySilhouettePanel);
@@ -135,6 +148,7 @@ namespace DynamicWindows
                     if (r.Checked)
                     {
                         currentInjuryCommand = r.command;
+                        injurySilhouettePanel.BackgroundImage = GetBodyImage(currentInjuryCommand);
                         plugin.ghost.SendText(currentInjuryCommand);
                         window.BringToFront();
                     }
@@ -159,9 +173,9 @@ namespace DynamicWindows
         {
             switch (currentInjuryCommand)
             {
-                case "_injury 0 -1": return new List<string> { "Injury1", "Injury2", "Injury3" }; // E Wound
-                case "_injury 1 -1": return new List<string> { "Scar1", "Scar2", "Scar3" };     // E Scar
-                case "_injury 2 -1": return new List<string> { "Injury1", "Injury2", "Injury3", "Injury4", "Injury5", "Scar1", "Scar2", "Scar3" }; // E Both
+                case "_injury 0 -1": return new List<string> { "Injury1", "Injury2", "Injury3", "Nsys1", "Nsys2", "Nsys3" }; // E Wound
+                case "_injury 1 -1": return new List<string> { "Scar1", "Scar2", "Scar3", "Nsys1", "Nsys2", "Nsys3" };     // E Scar
+                case "_injury 2 -1": return new List<string> { "Injury1", "Injury2", "Injury3", "Injury4", "Injury5", "Scar1", "Scar2", "Scar3", "Nsys1", "Nsys2", "Nsys3" }; // E Both
                 case "_injury 3 -1": return new List<string> { "Injury1", "Injury2", "Injury3", "Injury4", "Injury5", "Nsys1", "Nsys2", "Nsys3" }; // I Wound
                 case "_injury 4 -1": return new List<string> { "Scar1", "Scar2", "Scar3", "Nsys1", "Nsys2", "Nsys3" };      // I Scar
                 case "_injury 5 -1": return new List<string> { "Injury1", "Injury2", "Injury3", "Scar1", "Scar2", "Scar3", "Nsys1", "Nsys2", "Nsys3" }; // I Both

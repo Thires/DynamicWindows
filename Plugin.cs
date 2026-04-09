@@ -6,1148 +6,779 @@ using System.Drawing;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
-using System.Windows.Forms.Layout;
 using System.Xml;
 
 namespace DynamicWindows
 {
     public class Plugin : IPlugin
     {
+        // ── Public state (accessed by other classes) ─────────────────────────
         public ArrayList forms = new ArrayList();
         public Hashtable documents = new Hashtable();
         public Color formback = Color.Black;
         public Color formfore = Color.White;
         public bool bPluginEnabled = true;
+        public float fontSize = 9f;
+        public string fontFamily = SystemFonts.DefaultFont.FontFamily.Name;
+
+        /// <summary>Resolved FontFamily used by all dynamic labels. Falls back to the system default.</summary>
+        private FontFamily ResolvedFontFamily =>
+            FontFamily.Families.FirstOrDefault(f => f.Name.Equals(fontFamily, StringComparison.OrdinalIgnoreCase))
+            ?? SystemFonts.DefaultFont.FontFamily;
+
+        /// <summary>Linear scale factor relative to the default font size of 9pt.</summary>
+        private float FontScale => fontSize / 9f;
         public ArrayList ignorelist = new ArrayList();
         public Dictionary<string, Point> positionList = new Dictionary<string, Point>();
         public bool bStowContainer;
         public Form pForm;
         public IHost ghost;
+        public bool bDisableOtherInjuries = true;
+        public bool bDisableSelfInjuries = true;
+        public LoadSave loadSave;
+        public string characterName;
+
+        // ── Private state ────────────────────────────────────────────────────
         private string configPath;
         private InjuriesWindow injuriesWindow;
         private InjuriesOthersWindow injuriesOthersWindow;
         private readonly Dictionary<string, InjuriesOthersWindow> injuryWindows = new Dictionary<string, InjuriesOthersWindow>();
-        public bool bDisableOtherInjuries = true;
-        public bool bDisableSelfInjuries = true;
-
-
-        public LoadSave loadSave;
         private string lastConnectionStatus = "";
-        public string characterName;
+
+        // ── IPlugin metadata ─────────────────────────────────────────────────
+        public string Name => "Dynamic Windows";
+        public string Version => "2.2.7";
+        public string Author => "Multiple Developers";
+        public string Description => "Displays content windows specified through the XML stream from the game.";
 
         public bool Enabled
         {
-            get
-            {
-                return this.bPluginEnabled;
-            }
-            set
-            {
-                if (value)
-                    this.bPluginEnabled = true;
-                else
-                    this.bPluginEnabled = false;
-            }
+            get => bPluginEnabled;
+            set => bPluginEnabled = value;
         }
 
-        public string Name => "Dynamic Windows";
+        // =====================================================================
+        // IPlugin lifecycle
+        // =====================================================================
 
-        public string Version => "2.2.5";
-
-        public string Author => "Multiple Developers";
-
-        public string Description => "Displays content windows specified through the XML stream from the game.";
-
-        public void Initialize(IHost Host)
+        public void Initialize(IHost host)
         {
             try
             {
-                this.ghost = Host;
-                this.pForm = Host.ParentForm;
-                this.configPath = Host.get_Variable("PluginPath");
-                this.loadSave = new LoadSave(this, this.configPath, this.characterName);
-
-                // Load the config
-                this.loadSave.Load();
-                this.injuriesWindow = new InjuriesWindow(this); 
-                this.injuriesOthersWindow = new InjuriesOthersWindow(this);
+                ghost = host;
+                pForm = host.ParentForm;
+                configPath = host.get_Variable("PluginPath");
+                loadSave = new LoadSave(this, configPath, characterName);
+                loadSave.Load();
+                injuriesWindow = new InjuriesWindow(this);
+                injuriesOthersWindow = new InjuriesOthersWindow(this);
             }
             catch (Exception ex)
             {
-                Host.EchoText("[Plugin Error] Initialization failed: " + ex.Message);
-            }
-        }
-
-        public string ParseInput(string Text)
-        {
-            if (Text.Equals("/debugwindows", StringComparison.OrdinalIgnoreCase))
-            {
-                this.ghost.EchoText("Form Count: " + this.forms.Count.ToString());
-                foreach (Control control in this.forms)
-                    this.ghost.EchoText("    Form: " + control.Name);
-                foreach (string str in (IEnumerable)this.documents.Keys)
-                    this.ghost.EchoText($"Variable: {str} - {this.documents[(object)str]}");
-                return "";
-            }
-
-            if (Text.Equals("/injurieswindow", StringComparison.OrdinalIgnoreCase))
-            {
-                if (!this.bDisableSelfInjuries)
-                {
-
-                this.ghost.EchoText("Re-opening injuries window...");
-
-                string id = "injuries";
-
-                var match = this.ignorelist.Cast<string>()
-                    .FirstOrDefault(x => x.Equals(id, StringComparison.OrdinalIgnoreCase));
-
-                if (match != null)
-                    this.ignorelist.Remove(match);
-
-                this.injuriesWindow.Create(null);
-                //this.ghost.SendText("_injury 0 -1");
-                }
-                return "";
-            }
-
-            if (Text.Equals("/toggleInjuries", StringComparison.OrdinalIgnoreCase))
-            {
-                this.bDisableSelfInjuries = !this.bDisableSelfInjuries;
-                this.ghost.EchoText("[Plugin]: Other window is now " +
-                    (this.bDisableSelfInjuries ? "disabled" : "enabled"));
-                if (this.loadSave != null) this.loadSave.Save();
-                return "";
-            }
-
-            if (Text.Equals("/toggleOtherInjuries", StringComparison.OrdinalIgnoreCase))
-            {
-                this.bDisableOtherInjuries = !this.bDisableOtherInjuries;
-                this.ghost.EchoText("[Plugin]: Other injuries windows are now " +
-                    (this.bDisableOtherInjuries ? "disabled" : "enabled"));
-                if (this.loadSave != null) this.loadSave.Save();
-                return "";
-            }
-
-            if (Text.Equals("/injurieshelp", StringComparison.OrdinalIgnoreCase) || Text.Equals("/injurieswindowshelp", StringComparison.OrdinalIgnoreCase) || Text.Equals("/dynamicwindows help", StringComparison.OrdinalIgnoreCase))
-            {
-                this.ghost.EchoText("Dynamic Windows Injuries Options Help:");
-                this.ghost.EchoText("  /injurieswindow         - Re-opens your self Injuries window if closed or lost.");
-                this.ghost.EchoText("  /toggleInjuries         - Enables or disables showing your own Injuries window.");
-                this.ghost.EchoText("  /toggleOtherInjuries    - Enables or disables all 'other injuries' windows for other players.");
-                this.ghost.EchoText("  /debugwindows           - Displays the number of open windows and their names.");
-                this.ghost.EchoText("  (All commands are case-insensitive and can be used at any time.)");
-                return "";
-            }
-
-            return Text;
-        }
-
-        public string ParseText(string Text, string Window)
-        {
-            if (Window.Trim().ToLower() == "main" || Window.Trim() == string.Empty)
-                return this.ParseText(Text);
-            else
-                return Text;
-        }
-
-        public string ParseText(string Text)
-        {
-            return Text;
-        }
-
-        public void ParseXML(string XML)
-        {
-            if (!this.bPluginEnabled)
-                return;
-
-            try
-            {
-                XmlDocument xmlDocument = new XmlDocument();
-                xmlDocument.LoadXml("<?xml version='1.0'?><root>" + XML + "</root>");
-                foreach (XmlElement xmlElement in xmlDocument.DocumentElement.ChildNodes)
-                {
-                    //string id = xmlElement.GetAttribute("id")?.Trim();
-                    string id = xmlElement.GetAttribute("id");
-
-                    // Skip any ignored windows globally
-                    if (!string.IsNullOrEmpty(id) &&
-                        this.ignorelist.Cast<string>().Any(x => x.Equals(id, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        continue;
-                    }
-
-                    switch (xmlElement.Name)
-                    {
-                    case "exposeStream":
-                        this.Parse_xml_exposestream(xmlElement);
-                        continue;
-                    case "pushStream":
-                        this.Parse_xml_pushstream(xmlElement);
-                        continue;
-                    case "popStream":
-                        this.Parse_xml_popStream(xmlElement);
-                        continue;
-                    case "streamWindow":
-                    this.Parse_xml_streamwindow(xmlElement);
-                        continue;
-                    case "openDialog":
-                            if (id.StartsWith("injuries-"))
-                            {
-                                if (this.bDisableOtherInjuries)
-                                    break;
-                                string title = xmlElement.GetAttribute("title");
-                                injuriesOthersWindow.Create(id, title);
-                                break;
-                            }
-
-                            if (id == "injuries" && this.injuriesWindow != null)
-                            {
-                                if (this.bDisableSelfInjuries)
-                                    break;
-                                this.injuriesWindow.Create(xmlElement);
-                                continue;
-                            }
-                            this.Parse_xml_openwindow(xmlElement);
-                        continue;
-                        case "dialogData":
-                            if (id.StartsWith("injuries-"))
-                            {
-                                if (this.bDisableOtherInjuries)
-                                    break;
-                                injuriesOthersWindow.Update(id, xmlElement);
-                                break;
-                            }
-                            
-                            if (id == "injuries")
-                            {
-                                if (this.bDisableSelfInjuries)
-                                    break;
-                                injuriesWindow.Update(xmlElement);
-                                continue;
-                            }
-                            this.Parse_xml_updatewindow(xmlElement);
-                            continue;
-                    case "closeDialog":
-                        this.Parse_xml_closewindow(xmlElement);
-                        continue;
-                    case "exposeDialog":
-                        this.Parse_xml_exposewindow(xmlElement);
-                        continue;
-                    case "dynaStream":
-                        this.Parse_set_stream(xmlElement);
-                        continue;
-                    case "clearDynaStream":
-                        Parse_clear_stream(xmlElement);
-                        continue;
-                    case "clearStream":
-                        this.Parse_clear_stream(xmlElement);
-                        continue;
-                    case "clearContainer":
-                        this.Parse_container(xmlElement);
-                        continue;
-                    case "inv":
-                        this.Parse_inventory(xmlElement);
-                        continue;
-                    default:
-                        continue;
-                }
-            }
-        }
-            catch (Exception ex)
-            {
-                this.ghost.EchoText("Error parsing XML: " + ex.Message);
+                host.EchoText("[Plugin Error] Initialization failed: " + ex.Message);
             }
         }
 
         public void Show()
         {
-            FormOptionWindow formOptionWindow = new FormOptionWindow(this)
-            {
-                MdiParent = this.pForm,
-                TopMost = true
-            };
-            ((Control)formOptionWindow).Show();
+            new FormOptionWindow(this) { MdiParent = pForm, TopMost = true }.Show();
+        }
+
+        public void ParentClosing()
+        {
+            foreach (SkinnedMDIChild window in forms)
+                positionList[window.Name] = window.Location;
+
+            loadSave.Save();
+
+            foreach (SkinnedMDIChild window in forms.Cast<SkinnedMDIChild>().ToList())
+                window.Close();
+
+            forms.Clear();
         }
 
         public void VariableChanged(string variable)
         {
-            string connected = this.ghost.get_Variable("connected");
+            string connected = ghost.get_Variable("connected");
 
             if (connected != lastConnectionStatus)
             {
                 lastConnectionStatus = connected;
 
-                if (connected == "0") // Disconnected
+                if (connected == "0")           // disconnected
                 {
-                    this.loadSave.Save();
-
-                    foreach (SkinnedMDIChild window in this.forms.Cast<SkinnedMDIChild>().ToList())
-                        window.Close();
-
-                    this.forms.Clear();
+                    loadSave.Save();
+                    foreach (SkinnedMDIChild w in forms.Cast<SkinnedMDIChild>().ToList())
+                        w.Close();
+                    forms.Clear();
                 }
-                else if (connected == "1") // Reconnected
+                else if (connected == "1")      // reconnected
                 {
-                    this.characterName = this.ghost.get_Variable("charactername");
-                    this.loadSave = new LoadSave(this, this.configPath, this.characterName);
-                    this.loadSave.Load();
+                    characterName = ghost.get_Variable("charactername");
+                    loadSave = new LoadSave(this, configPath, characterName);
+                    loadSave.Load();
                 }
             }
 
-            // Optional: still respond to charactername specifically if needed
             if (variable.Equals("charactername", StringComparison.OrdinalIgnoreCase))
-            {
-                // Possibly redundant now
-                this.loadSave.Load();
-            }
+                loadSave.Load();
         }
 
-        public void ParentClosing()
+        // =====================================================================
+        // Text / input parsing
+        // =====================================================================
+
+        public string ParseText(string text, string window)
         {
-            // Update positions of all windows before closing
-            foreach (SkinnedMDIChild window in this.forms)
-            {
-                this.positionList[window.Name] = window.Location;
-            }
-
-            // Save character-specific settings
-            this.loadSave.Save();
-
-            // Close all open windows (including injuries)
-            foreach (SkinnedMDIChild window in this.forms.Cast<SkinnedMDIChild>().ToList())
-            {
-                window.Close();
-            }
-
-            this.forms.Clear();
+            return (window.Trim().ToLower() == "main" || window.Trim() == string.Empty)
+                ? ParseText(text)
+                : text;
         }
+
+        public string ParseText(string text) => text;
+
+        public string ParseInput(string text)
+        {
+            switch (text.ToLower())
+            {
+                case "/debugwindows":
+                    ghost.EchoText("Form Count: " + forms.Count);
+                    foreach (Control c in forms)
+                        ghost.EchoText("    Form: " + c.Name);
+                    foreach (string key in (IEnumerable)documents.Keys)
+                        ghost.EchoText($"Variable: {key} - {documents[key]}");
+                    return "";
+
+                case "/injurieswindow":
+                    if (!bDisableSelfInjuries)
+                    {
+                        ghost.EchoText("Re-opening injuries window...");
+                        var match = ignorelist.Cast<string>()
+                            .FirstOrDefault(x => x.Equals("injuries", StringComparison.OrdinalIgnoreCase));
+                        if (match != null) ignorelist.Remove(match);
+                        injuriesWindow.Create(null);
+                    }
+                    return "";
+
+                case "/toggleinjuries":
+                    bDisableSelfInjuries = !bDisableSelfInjuries;
+                    ghost.EchoText("[Plugin]: Self injuries window is now " + (bDisableSelfInjuries ? "disabled" : "enabled"));
+                    loadSave?.Save();
+                    return "";
+
+                case "/toggleotherinjuries":
+                    bDisableOtherInjuries = !bDisableOtherInjuries;
+                    ghost.EchoText("[Plugin]: Other injuries windows are now " + (bDisableOtherInjuries ? "disabled" : "enabled"));
+                    loadSave?.Save();
+                    return "";
+
+                case "/injurieshelp":
+                case "/injurieswindowshelp":
+                case "/dynamicwindows help":
+                    ghost.EchoText("Dynamic Windows Help:");
+                    ghost.EchoText("  /injurieswindow         - Re-opens your self Injuries window if closed or lost.");
+                    ghost.EchoText("  /toggleInjuries         - Enables or disables showing your own Injuries window.");
+                    ghost.EchoText("  /toggleOtherInjuries    - Enables or disables all 'other injuries' windows for other players.");
+                    ghost.EchoText("  /debugwindows           - Displays the number of open windows and their names.");
+                    ghost.EchoText("  (All commands are case-insensitive and can be used at any time.)");
+                    return "";
+            }
+
+            return text;
+        }
+
+        // =====================================================================
+        // XML parsing – main dispatch
+        // =====================================================================
+
+        public void ParseXML(string xml)
+        {
+            if (!bPluginEnabled) return;
+
+            try
+            {
+                var doc = new XmlDocument();
+                doc.LoadXml("<?xml version='1.0'?><root>" + xml + "</root>");
+
+                foreach (XmlElement elem in doc.DocumentElement.ChildNodes)
+                {
+                    string id = elem.GetAttribute("id");
+
+                    if (!string.IsNullOrEmpty(id) &&
+                        ignorelist.Cast<string>().Any(x => x.Equals(id, StringComparison.OrdinalIgnoreCase)))
+                        continue;
+
+                    switch (elem.Name)
+                    {
+                        case "exposeStream": Parse_xml_exposestream(elem); continue;
+                        case "pushStream": Parse_xml_pushstream(elem); continue;
+                        case "popStream": Parse_xml_popStream(elem); continue;
+                        case "streamWindow": Parse_xml_streamwindow(elem); continue;
+                        case "closeDialog": Parse_xml_closewindow(elem); continue;
+                        case "exposeDialog": Parse_xml_exposewindow(elem); continue;
+                        case "dynaStream": Parse_set_stream(elem); continue;
+                        case "clearDynaStream": Parse_clear_stream(elem); continue;
+                        case "clearStream": Parse_clear_stream(elem); continue;
+                        case "clearContainer": Parse_container(elem); continue;
+                        case "inv": Parse_inventory(elem); continue;
+
+                        case "openDialog":
+                            if (id.StartsWith("injuries-"))
+                            {
+                                if (!bDisableOtherInjuries)
+                                    injuriesOthersWindow.Create(id, elem.GetAttribute("title"));
+                            }
+                            else if (id == "injuries" && injuriesWindow != null)
+                            {
+                                if (!bDisableSelfInjuries)
+                                    injuriesWindow.Create(elem);
+                            }
+                            else
+                            {
+                                Parse_xml_openwindow(elem);
+                            }
+                            continue;
+
+                        case "dialogData":
+                            if (id.StartsWith("injuries-"))
+                            {
+                                if (!bDisableOtherInjuries)
+                                    injuriesOthersWindow.Update(id, elem);
+                            }
+                            else if (id == "injuries")
+                            {
+                                if (!bDisableSelfInjuries)
+                                    injuriesWindow.Update(elem);
+                            }
+                            else
+                            {
+                                Parse_xml_updatewindow(elem);
+                            }
+                            continue;
+
+                        default: continue;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                ghost.EchoText("Error parsing XML: " + ex.Message);
+            }
+        }
+
+        // =====================================================================
+        // Window open / close / expose / update
+        // =====================================================================
 
         private void Parse_xml_streamwindow(XmlElement elem)
         {
-            // Check if the id attribute is "profileHelp"
-            if (elem.GetAttribute("id") != "profileHelp")
-                return;
+            // Only handles the profile help popup
+            if (elem.GetAttribute("id") != "profileHelp") return;
 
-            // Use default values for the width and height if they are not specified in the element
+            string id = elem.GetAttribute("id");
             int width = elem.HasAttribute("width") ? int.Parse(elem.GetAttribute("width")) : 375;
             int height = elem.HasAttribute("height") ? int.Parse(elem.GetAttribute("height")) : 350;
 
-            // Check if the stream window is already open
-            SkinnedMDIChild existingWindow = null;
-            foreach (SkinnedMDIChild window in this.forms)
-            {
-                if (window.Name == elem.GetAttribute("id"))
-                {
-                    existingWindow = window;
-                    break;
-                }
-            }
+            CloseWindowIfOpen(id);
 
-            if (existingWindow != null)
-            {
-                // Close the existing window
-                this.forms.Remove(existingWindow);
-                existingWindow.Close();
-            }
+            var win = CreateSkinnedWindow(id, elem.GetAttribute("title"), width, height + 22);
+            win.formBody.Visible = true;
+            win.formBody.AutoScroll = true;
+            win.formBody.AutoSize = true;
 
-            // Create a new SkinnedMDIChild object for the stream window
-            SkinnedMDIChild streamWindow = new SkinnedMDIChild(this.ghost, this)
-            {
-                MdiParent = this.pForm,
-                Text = elem.GetAttribute("title"),
-                ForeColor = this.formfore
-            };
-            streamWindow.formBody.ForeColor = this.formfore;
-            streamWindow.Name = elem.GetAttribute("id");
-            streamWindow.ClientSize = new Size(width, height + 22);
-            streamWindow.FormClosed += (s, e) => this.loadSave.Save();
-
-            if (this.positionList.ContainsKey(elem.GetAttribute("id")))
-            {
-                streamWindow.StartPosition = FormStartPosition.Manual;
-                streamWindow.Location = this.positionList[elem.GetAttribute("id")];
-            }
-            else
-            {
-                streamWindow.StartPosition = FormStartPosition.CenterScreen;
-            }
-
-            // Show the stream window
-            streamWindow.formBody.Visible = true;
-            streamWindow.formBody.AutoScroll = true;
-            streamWindow.formBody.AutoSize = true;
-            if (elem.HasAttribute("resident") && elem.GetAttribute("resident").Equals("false") && !elem.GetAttribute("location").Equals("center"))
+            if (elem.HasAttribute("resident") &&
+                elem.GetAttribute("resident").Equals("false") &&
+                !elem.GetAttribute("location").Equals("center"))
                 return;
 
-            // Create a new instance of the HelpWindows class
-            HelpWindows helpWindows = new HelpWindows();
-
-            // Create a new RichTextBox control
-            RichTextBox contentBox = new RichTextBox
+            var help = new HelpWindows();
+            var contentBox = new RichTextBox
             {
-                ForeColor = this.formfore,
-                BackColor = this.formback,
+                ForeColor = formfore,
+                BackColor = formback,
                 ReadOnly = true,
-                BorderStyle = BorderStyle.None
+                BorderStyle = BorderStyle.None,
+                Dock = DockStyle.Fill
             };
-            if (streamWindow.Text == "Profile RP Help")
-                contentBox.Text = helpWindows.RPHelp;
-            if (streamWindow.Text == "Profile PVP Help")
-                contentBox.Text = helpWindows.PVPHelp;
-            if (streamWindow.Text == "Profile SPOUSE Help")
-                contentBox.Text = helpWindows.SPOUSEHelp;
-            // this removes the window in genie that these create
-            this.ghost.SendText("#window remove profileHelp");
-            contentBox.Dock = DockStyle.Fill;
 
-            // Add the RichTextBox control to the formBody property of the streamWindow object
-            streamWindow.formBody.Controls.Add(contentBox);
-            streamWindow.ShowForm();
-        }
+            if (win.Text == "Profile RP Help") contentBox.Text = help.RPHelp;
+            if (win.Text == "Profile PVP Help") contentBox.Text = help.PVPHelp;
+            if (win.Text == "Profile SPOUSE Help") contentBox.Text = help.SPOUSEHelp;
 
-        private SkinnedMDIChild FindWindowByName(string name)
-        {
-            foreach (SkinnedMDIChild window in this.forms)
-            {
-                if (window.Name == name && !window.IsDisposed)
-                    return window;
-            }
-            return null;
-        }
-
-        // Find labels by name
-        private SkinnedMDIChild FindLabelByName(string name)
-        {
-            // Search for the window in the forms list
-            foreach (SkinnedMDIChild label in this.forms)
-            {
-                if (label.Name == name)
-                {
-                    // Return the window if it is found
-                    return label;
-                }
-            }
-
-            // Return null if the window is not found
-            return null;
-        }
-
-        private void Parse_xml_exposestream(XmlElement elem)
-        {
-            var streamWindow = FindWindowByName(elem.GetAttribute("id"));
-            streamWindow?.Show();
-        }
-
-        private void Parse_xml_pushstream(XmlElement elem)
-        {
-            var streamWindow = FindWindowByName(elem.GetAttribute("id"));
-            if (streamWindow == null) return;
-
-            foreach (Control control in streamWindow.formBody.Controls)
-            {
-                if (control is RichTextBox rtb && control.Name == elem.GetAttribute("id"))
-                {
-                    rtb.AppendText(elem.InnerText + Environment.NewLine);
-                    return;
-                }
-            }
-        }
-
-        private void Parse_xml_popStream(XmlElement elem)
-        {
-            var streamWindow = FindWindowByName(elem.GetAttribute("id"));
-            if (streamWindow == null) return;
-
-            foreach (Control control in streamWindow.formBody.Controls)
-            {
-                if (control is RichTextBox rtb && control.Name == elem.GetAttribute("id"))
-                {
-                    rtb.Clear();
-                    return;
-                }
-            }
-        }
-
-        private void Parse_xml_exposewindow(XmlElement elem)
-        {
-            foreach (SkinnedMDIChild skinnedMdiChild in this.forms)
-            {
-                if (skinnedMdiChild.Name.Equals(elem.GetAttribute("id")))
-                {
-                    skinnedMdiChild.TopMost = true;
-                    skinnedMdiChild.Update();
-                    skinnedMdiChild.ShowForm();
-                }
-            }
-        }
-
-        private void Parse_xml_closewindow(XmlElement elem)
-        {
-            SkinnedMDIChild skinnedMdiChild1 = (SkinnedMDIChild)null;
-            foreach (SkinnedMDIChild skinnedMdiChild2 in this.forms)
-            {
-                if (skinnedMdiChild2.Name.Equals(elem.GetAttribute("id")))
-                    skinnedMdiChild1 = skinnedMdiChild2;
-            }
-            if (skinnedMdiChild1 == null)
-                return;
-            this.forms.Remove((object)skinnedMdiChild1);
-            skinnedMdiChild1.Close();
-        }
-
-        private void Parse_xml_updatewindow(XmlElement xelem)
-        {
-            SkinnedMDIChild dyndialog = (SkinnedMDIChild)null;
-            foreach (SkinnedMDIChild skinnedMdiChild in this.forms)
-            {
-                if (skinnedMdiChild.Name.Equals(xelem.GetAttribute("id")))
-                    dyndialog = skinnedMdiChild;
-            }
-            if (dyndialog == null)
-                return;
-
-            dyndialog.formBody.Visible = false;
-            foreach (XmlElement cbx in xelem.ChildNodes)
-            {
-                switch (cbx.Name)
-                {
-                    case "label":
-                        this.Parse_labels(cbx, dyndialog);
-                        continue;
-                    case "cmdButton":
-                        this.Parse_command_buttons(cbx, dyndialog);
-                        continue;
-                    case "closeButton":
-                        this.Parse_close_button(cbx, dyndialog);
-                        continue;
-                    case "checkBox":
-                        this.Parse_check_box(cbx, dyndialog);
-                        continue;
-                    case "radio":
-                        this.Parse_radio_button(cbx, dyndialog);
-                        continue;
-                    case "streamBox":
-                        this.Parse_stream_box(cbx, dyndialog);
-                        continue;
-                    case "dropDownBox":
-                        this.Parse_drop_down(cbx, dyndialog);
-                        continue;
-                    case "upDownEditBox":
-                        this.Parse_numericupdown(cbx, dyndialog);
-                        continue;
-                    case "editBox":
-                        this.Parse_edit_box(cbx, dyndialog);
-                        continue;
-                    case "progressBar":
-                        this.Parse_progress_bar(cbx, dyndialog);
-                        continue;
-                    default:
-                        continue;
-                }
-            }
-            dyndialog.formBody.Visible = true;
-            dyndialog.formBody.AutoScroll = true;
-            dyndialog.formBody.AutoSize = true;
-            dyndialog.TopMost = true;
-            dyndialog.Update();
-            dyndialog.ShowForm();
+            ghost.SendText("#window remove profileHelp");
+            win.formBody.Controls.Add(contentBox);
+            win.ShowForm();
         }
 
         public void Parse_xml_openwindow(XmlElement xelem)
         {
-            if (!xelem.GetAttribute("type").Equals("dynamic") || !xelem.HasAttribute("width") || !xelem.HasAttribute("height"))
+            if (!xelem.GetAttribute("type").Equals("dynamic") ||
+                !xelem.HasAttribute("width") || !xelem.HasAttribute("height"))
                 return;
-            SkinnedMDIChild skinnedMdiChild1 = (SkinnedMDIChild)null;
-            
-            if (this.loadSave.IsIgnored(xelem.GetAttribute("id")))
-                return;
-            
-            foreach (SkinnedMDIChild skinnedMdiChild2 in this.forms)
-            {
-                if (skinnedMdiChild2.Name.Equals(xelem.GetAttribute("id")))
-                    skinnedMdiChild1 = skinnedMdiChild2;
-            }
-            
-            if (skinnedMdiChild1 != null)
-            {
-                this.forms.Remove((object)skinnedMdiChild1);
-                skinnedMdiChild1.Close();
-            }
 
-            SkinnedMDIChild dyndialog = new SkinnedMDIChild(this.ghost, this)
-            {
-                MdiParent = this.pForm,
-                Text = xelem.GetAttribute("title")
-            };
-            dyndialog.formBody.ForeColor = this.formfore;
-            dyndialog.formBody.BackColor = this.formback;
-            dyndialog.formBody.AutoSize = false;
-            dyndialog.formBody.BorderStyle = BorderStyle.None;
-            this.forms.Add((object)dyndialog);
-            dyndialog.Name = xelem.GetAttribute("id");
-            
-            if (xelem.GetAttribute("id") == "spellChoose")
-            {
-                dyndialog.ClientSize = new Size(480, int.Parse(xelem.GetAttribute("height")) + 22);
-            }
-            else
-                dyndialog.ClientSize = new Size(int.Parse(xelem.GetAttribute("width")), int.Parse(xelem.GetAttribute("height")) + 22);
+            string id = xelem.GetAttribute("id");
 
-            if (this.positionList.ContainsKey(xelem.GetAttribute("id")))
+            if (loadSave.IsIgnored(id)) return;
+
+            CloseWindowIfOpen(id);
+
+            // Spell/feat choose dialogs have custom layout — scale their window width with font size
+            int xmlWidth = int.Parse(xelem.GetAttribute("width"));
+            int xmlHeight = int.Parse(xelem.GetAttribute("height"));
+            int width, height;
+
+            if (id == "spellChoose" || id == "featChoose" || id == "featRemove")
             {
-                dyndialog.StartPosition = FormStartPosition.Manual;
-                dyndialog.Location = this.positionList[xelem.GetAttribute("id")];
+                width = (int)(xmlWidth * FontScale);
+                height = (int)(xmlHeight * FontScale);
             }
             else
             {
-                dyndialog.StartPosition = FormStartPosition.CenterScreen;
+                width = xmlWidth;
+                height = xmlHeight;
             }
 
-            dyndialog.FormClosed += (s, e) => this.loadSave.Save();
-            dyndialog.formBody.Visible = false;
+            var dialog = CreateSkinnedWindow(id, xelem.GetAttribute("title"), width, height + 22);
+            dialog.formBody.ForeColor = formfore;
+            dialog.formBody.BackColor = formback;
+            dialog.formBody.AutoSize = false;
+            dialog.formBody.BorderStyle = BorderStyle.None;
+            dialog.formBody.Visible = false;
 
-            foreach (XmlElement xmlElement in xelem.FirstChild.ChildNodes)
+            BuildDialogControls(xelem.FirstChild as XmlElement, dialog);
+
+            // For dialogs whose window size comes from XML (not scaled), auto-expand
+            // to fit content if the larger font pushes controls outside the original bounds.
+            if (id != "spellChoose" && id != "featChoose" && id != "featRemove")
+                AutoFitDialog(dialog);
+
+            dialog.formBody.Visible = true;
+            dialog.formBody.AutoScroll = true;
+
+            bool isResident = xelem.HasAttribute("resident") && xelem.GetAttribute("resident").Equals("false");
+            string location = xelem.GetAttribute("location");
+            // Only suppress showing if the dialog is non-resident and neither centered nor detached
+            if (isResident && !location.Equals("center") && !location.Equals("detach")) return;
+
+            dialog.TopMost = true;
+            dialog.ShowForm();
+
+            // "confirm" dialogs must steal focus immediately
+            if (id == "confirm")
             {
-                switch (xmlElement.Name)
-                {
-                    case "label":
-                        this.Parse_labels(xmlElement, dyndialog);
-                        continue;
-                    case "cmdButton":
-                        this.Parse_command_buttons(xmlElement, dyndialog);
-                        continue;
-                    case "closeButton":
-                        this.Parse_close_button(xmlElement, dyndialog);
-                        continue;
-                    case "radio":
-                        this.Parse_radio_button(xmlElement, dyndialog);
-                        continue;
-                    case "streamBox":
-                        this.Parse_stream_box(xmlElement, dyndialog);
-                        continue;
-                    case "dropDownBox":
-                        this.Parse_drop_down(xmlElement, dyndialog);
-                        continue;
-                    case "editBox":
-                        this.Parse_edit_box(xmlElement, dyndialog);
-                        continue;
-                    case "upDownEditBox":
-                        this.Parse_numericupdown(xmlElement, dyndialog);
-                        continue;
-                    case "clearContainer":
-                        this.Parse_container(xmlElement);
-                        continue;
-                    case "progressBar":
-                        this.Parse_progress_bar(xmlElement, dyndialog);
-                        continue;
-                    default:
-                        continue;
-                }
+                var t = new Timer { Interval = 10 };
+                t.Tick += (s, e) => { t.Stop(); t.Dispose(); dialog.BringToFront(); dialog.Focus(); };
+                t.Start();
             }
-            dyndialog.formBody.Visible = true;
-            dyndialog.formBody.AutoScroll = true;
-            if (xelem.HasAttribute("resident") && xelem.GetAttribute("resident").Equals("false") && !xelem.GetAttribute("location").Equals("detach"))
-                return;
-            dyndialog.TopMost = true;
-            dyndialog.ShowForm();
-            if (xelem.GetAttribute("id") == "confirm")
-            {
-                Timer bringToFrontTimer = new Timer();
-                bringToFrontTimer.Interval = 10;
-                bringToFrontTimer.Tick += (s, e) =>
-                {
-                    bringToFrontTimer.Stop();
-                    bringToFrontTimer.Dispose();
-
-                    dyndialog.BringToFront();
-                    dyndialog.Focus();
-                };
-                bringToFrontTimer.Start();
-            }
-
         }
+
+        private void Parse_xml_updatewindow(XmlElement xelem)
+        {
+            var dialog = FindWindowByName(xelem.GetAttribute("id"));
+            if (dialog == null) return;
+
+            dialog.formBody.Visible = false;
+            BuildDialogControls(xelem, dialog);
+            AutoFitDialog(dialog);
+            dialog.formBody.Visible = true;
+            dialog.formBody.AutoScroll = true;
+            dialog.formBody.AutoSize = true;
+            dialog.TopMost = true;
+            dialog.Update();
+            dialog.ShowForm();
+        }
+
+        private void Parse_xml_exposewindow(XmlElement elem)
+        {
+            var win = FindWindowByName(elem.GetAttribute("id"));
+            if (win == null) return;
+            win.TopMost = true;
+            win.Update();
+            win.ShowForm();
+        }
+
+        private void Parse_xml_closewindow(XmlElement elem)
+        {
+            CloseWindowIfOpen(elem.GetAttribute("id"));
+        }
+
+        private void Parse_xml_exposestream(XmlElement elem)
+        {
+            FindWindowByName(elem.GetAttribute("id"))?.Show();
+        }
+
+        private void Parse_xml_pushstream(XmlElement elem)
+        {
+            var win = FindWindowByName(elem.GetAttribute("id"));
+            if (win == null) return;
+
+            var rtb = win.formBody.Controls[elem.GetAttribute("id")] as RichTextBox;
+            rtb?.AppendText(elem.InnerText + Environment.NewLine);
+        }
+
+        private void Parse_xml_popStream(XmlElement elem)
+        {
+            var win = FindWindowByName(elem.GetAttribute("id"));
+            if (win == null) return;
+
+            var rtb = win.formBody.Controls[elem.GetAttribute("id")] as RichTextBox;
+            rtb?.Clear();
+        }
+
+        // =====================================================================
+        // Stream / inventory helpers
+        // =====================================================================
 
         private void Parse_container(XmlElement elem)
         {
-            if (!this.bStowContainer)
-                return;
-            this.ghost.SendText("#clear " + elem.GetAttribute("id"));
+            if (bStowContainer)
+                ghost.SendText("#clear " + elem.GetAttribute("id"));
         }
 
         private void Parse_inventory(XmlElement elem)
         {
-            if (!this.bStowContainer)
-                return;
-            this.ghost.SendText("#echo >" + elem.GetAttribute("id") + " " + elem.InnerText);
+            if (bStowContainer)
+                ghost.SendText("#echo >" + elem.GetAttribute("id") + " " + elem.InnerText);
         }
 
         private void Parse_clear_stream(XmlElement xelem)
         {
-            foreach (SkinnedMDIChild skinnedMdiChild in this.forms)
+            string id = xelem.GetAttribute("id");
+            foreach (SkinnedMDIChild win in forms)
             {
-                foreach (Control control in (ArrangedElementCollection)skinnedMdiChild.formBody.Controls)
+                foreach (Control ctrl in win.formBody.Controls)
                 {
-                    if (control.Name.Equals(xelem.GetAttribute("id")))
-                        control.Text = "";
+                    if (ctrl.Name.Equals(id))
+                        ctrl.Text = "";
                 }
             }
-            this.documents.Remove((object)xelem.GetAttribute("id"));
+            documents.Remove(id);
         }
 
         public void Parse_set_stream(XmlElement xmlElement)
         {
             string id = xmlElement.GetAttribute("id");
             string value = xmlElement.InnerXml;
+            documents[id] = value;
 
-            this.documents[(object)id] = (object)value;
-            foreach (SkinnedMDIChild skinnedMdiChild in this.forms)
+            foreach (SkinnedMDIChild win in forms)
             {
-                foreach (Control control in (ArrangedElementCollection)skinnedMdiChild.formBody.Controls)
+                foreach (Control ctrl in win.formBody.Controls)
                 {
-                    if (control.Name.Equals(id))
+                    if (!ctrl.Name.Equals(id)) continue;
+
+                    switch (id)
                     {
-                        switch (id)
-                        {
-                            case "spells":
-                                // Create a specific element for the "spells" stream
-                                if (control is Panel panel)
-                                {
-                                    if (panel.Controls.Count == 0)
-                                    {
-                                        // Only clear the panel and add the title label when it is first called
-                                        panel.Controls.Clear();
-                                        panel.SuspendLayout();
-                                        //panel.Size = this.Build_size(xmlElement, 200, 380);
-                                        panel.Height = 380;
-                                        panel.Width = 200;
-                                        panel.BackColor = this.formback;
-                                        Label label = new Label
-                                        {
-                                            Text = "",
-                                            AutoSize = true,
-                                            Location = new Point(0, 0)
-                                        };
-                                        panel.Controls.Add(label);
-                                    }
+                        case "spells":
+                            Stream_AppendSpellItems(ctrl as Panel, xmlElement);
+                            break;
 
-                                    int y = panel.Controls[panel.Controls.Count - 1].Bottom + 5;
-                                    if (!xmlElement.HasChildNodes || xmlElement.GetElementsByTagName("d").Count == 0)
-                                    {
-                                        // Add a label for the spell book name
-                                        Label bookLabel = new Label
-                                        {
-                                            Text = xmlElement.InnerXml,
-                                            AutoSize = true,
-                                            Location = new Point(0, y)
-                                        };
-                                        //bookLabel.Font = new Font(bookLabel.Font, FontStyle.Regular | FontStyle.Underline);
-                                        bookLabel.Font = new Font(bookLabel.Font.FontFamily, 10, FontStyle.Bold);
-                                        bookLabel.ForeColor = this.formfore;
-                                        bookLabel.Click -= SpellLabel_Click;
-                                        panel.Controls.Add(bookLabel);
+                        case "spellInfo":
+                            if (ctrl is RichTextBox spellRtb)
+                            {
+                                spellRtb.AppendText(xmlElement.InnerText + Environment.NewLine);
+                                int spellListW = (int)(200 * FontScale);
+                                spellRtb.Width = win.formBody.Width - spellListW - 15;
+                                spellRtb.Location = new Point(spellListW + 10, 40);
+                                spellRtb.BackColor = formback;
+                            }
+                            break;
 
-                                        y += bookLabel.Height + 5;
-                                    }
-                                    else
-                                    {
-                                        // Add labels for the spells
-                                        foreach (XmlNode node in xmlElement.ChildNodes)
-                                        {
-                                            if (node is XmlElement elem && elem.Name == "d")
-                                            {
-                                                Label spellLabel = new Label
-                                                {
-                                                    Text = elem.InnerText,
-                                                    AutoSize = true,
-                                                    Location = new Point(15, y),
-                                                    ForeColor = this.formfore
-                                                };
-                                                spellLabel.Font = new Font(spellLabel.Font.FontFamily, 9, FontStyle.Underline);
-                                                spellLabel.Tag = elem.GetAttribute("cmd");
-                                                spellLabel.Click += SpellLabel_Click;
-                                                panel.Controls.Add(spellLabel);
+                        case "featList":
+                            Stream_AppendFeatItems(ctrl as Panel, xmlElement);
+                            break;
 
-                                                y += spellLabel.Height + 5;
-                                            }
-                                        }
-                                    }
-                                    panel.ResumeLayout();
-                                }
-                                break;
+                        case "featInfo":
+                            if (ctrl is RichTextBox featRtb)
+                            {
+                                featRtb.AppendText(xmlElement.InnerText + Environment.NewLine);
+                                int featListW = (int)(250 * FontScale);
+                                featRtb.Width = win.formBody.Width - featListW - 15;
+                                featRtb.Location = new Point(featListW + 10, 60);
+                                featRtb.BackColor = formback;
+                            }
+                            break;
 
-                            case "spellInfo":
-                                // Handle the "spellInfo" stream
-                                if (control is RichTextBox spellInfoBox)
-                                {
-                                    spellInfoBox.AppendText(xmlElement.InnerText + Environment.NewLine);
-                                    spellInfoBox.Width = 250;
-                                    spellInfoBox.Location = new Point(215, 40);
-                                    spellInfoBox.BackColor = this.formback;
-                                }
-                                break;
-
-                            default:
-                                value = Regex.Replace(value, "(<pushBold />|<popBold />|<pushBold/>|<popBold/>)", "");
-                                //control.Text = value;
-
-                                string attribute = xmlElement.GetAttribute("id");
-                                string innerText = xmlElement.InnerText;
-                                this.documents[(object)attribute] = (object)innerText;
-                                foreach (Control control1 in (ArrangedElementCollection)skinnedMdiChild.formBody.Controls)
-                                {
-                                    if (control1.Name.Equals(attribute))
-                                        control1.Text = innerText;
-                                }
-                                break;
-                        }
+                        default:
+                            value = Regex.Replace(value, @"(<pushBold\s*/>|<popBold\s*/>)", "");
+                            string innerText = xmlElement.InnerText;
+                            documents[id] = innerText;
+                            foreach (Control ctrl2 in win.formBody.Controls)
+                            {
+                                if (ctrl2.Name.Equals(id))
+                                    ctrl2.Text = innerText;
+                            }
+                            break;
                     }
                 }
             }
         }
 
-        private void SpellLabel_Click(object sender, EventArgs e)
+        // =====================================================================
+        // Stream panel population helpers
+        // =====================================================================
+
+        /// <summary>Appends spell book headers and clickable spell labels to the spells panel.</summary>
+        private void Stream_AppendSpellItems(Panel panel, XmlElement xmlElement)
         {
-            Label label = (Label)sender;
-            string cmd = (string)label.Tag;
-            ghost.SendText(cmd);
+            if (panel == null) return;
 
-            // Find the form that contains the spell labels
-            Form form = label.FindForm();
+            panel.SuspendLayout();
 
-            // Find the "spells" panel control
-            Control spellsPanel = form.Controls.Find("spells", true).FirstOrDefault();
-
-            // Check if the "spells" panel was found
-            if (spellsPanel != null)
+            if (panel.Controls.Count == 0)
             {
-                // Find all spell labels in the "spells" panel
-                var spellLabels = spellsPanel.Controls.OfType<Label>();
+                panel.Height = 380;
+                panel.Width = (int)(200 * FontScale);
+                panel.BackColor = formback;
+                panel.Controls.Add(new Label { Text = "", AutoSize = true, Location = new Point(0, 0) });
+            }
 
-                // Reset the ForeColor of all spell labels to their default color
-                foreach (var spellLabel in spellLabels)
+            int y = panel.Controls[panel.Controls.Count - 1].Bottom + 5;
+
+            bool hasSpells = xmlElement.HasChildNodes &&
+                             xmlElement.GetElementsByTagName("d").Count > 0;
+
+            if (!hasSpells)
+            {
+                // Section header (book name)
+                var header = new Label
                 {
-                    spellLabel.ForeColor = this.formfore;
+                    Text = xmlElement.InnerXml,
+                    AutoSize = true,
+                    Location = new Point(0, y),
+                    ForeColor = formfore,
+                    Font = new Font(ResolvedFontFamily, fontSize + 1, FontStyle.Bold)
+                };
+                header.Click -= SpellLabel_Click;
+                panel.Controls.Add(header);
+            }
+            else
+            {
+                foreach (XmlNode node in xmlElement.ChildNodes)
+                {
+                    if (!(node is XmlElement elem) || elem.Name != "d") continue;
+
+                    var lbl = new Label
+                    {
+                        Text = elem.InnerText,
+                        AutoSize = true,
+                        Location = new Point(15, y),
+                        ForeColor = formfore,
+                        Font = new Font(ResolvedFontFamily, fontSize, FontStyle.Underline),
+                        Tag = elem.GetAttribute("cmd")
+                    };
+                    lbl.Click += SpellLabel_Click;
+                    panel.Controls.Add(lbl);
+                    y += lbl.Height + 5;
                 }
             }
 
-            // Change the ForeColor of the clicked label to the desired color
-            label.ForeColor = Color.Blue;
+            panel.ResumeLayout(false);
+            panel.PerformLayout();
+        }
 
-            // Find the choose button control
-            Control chooseButton = form.Controls.Find("chooseSpell", true).FirstOrDefault();
+        /// <summary>Appends clickable feat labels to the featList panel.</summary>
+        private void Stream_AppendFeatItems(Panel panel, XmlElement xmlElement)
+        {
+            if (panel == null) return;
 
-            // Check if the choose button was found
-            if (chooseButton != null)
+            // Skip dynaStream calls that carry no real content (the game pads with many empty entries)
+            bool hasContent = xmlElement.ChildNodes.Cast<XmlNode>()
+                .Any(n => n is XmlElement e && e.Name == "d" && !string.IsNullOrWhiteSpace(e.InnerText));
+            if (!hasContent) return;
+
+            panel.SuspendLayout();
+
+            if (panel.Controls.Count == 0)
             {
-                // Update the text and command of the choose button
-                chooseButton.Text = "Choose " + label.Text;
-                ((CmdButton)chooseButton).cmd_string = cmd;
+                panel.Height = 380;
+                panel.Width = (int)(250 * FontScale);
+                panel.BackColor = formback;
+                panel.Controls.Add(new Label { Text = "", AutoSize = true, Location = new Point(0, 0) });
+            }
+
+            int y = panel.Controls[panel.Controls.Count - 1].Bottom + 5;
+
+            foreach (XmlNode node in xmlElement.ChildNodes)
+            {
+                if (!(node is XmlElement elem) || elem.Name != "d" ||
+                    string.IsNullOrWhiteSpace(elem.InnerText)) continue;
+
+                var lbl = MakeClickableLabel(elem.InnerText, elem.GetAttribute("cmd"), new Point(5, y), FeatLabel_Click);
+                panel.Controls.Add(lbl);
+                y += lbl.Height + 5;
+            }
+
+            panel.ResumeLayout(false);
+            panel.PerformLayout();
+        }
+
+        // =====================================================================
+        // Dialog control builders
+        // =====================================================================
+
+        /// <summary>Iterates child XML elements and builds the corresponding WinForms controls.</summary>
+        private void BuildDialogControls(XmlElement container, SkinnedMDIChild dialog)
+        {
+            if (container == null) return;
+
+            foreach (XmlElement cbx in container.ChildNodes)
+            {
+                switch (cbx.Name)
+                {
+                    case "label": Parse_labels(cbx, dialog); break;
+                    case "cmdButton": Parse_command_buttons(cbx, dialog); break;
+                    case "closeButton": Parse_close_button(cbx, dialog); break;
+                    case "checkBox": Parse_check_box(cbx, dialog); break;
+                    case "radio": Parse_radio_button(cbx, dialog); break;
+                    case "streamBox": Parse_stream_box(cbx, dialog); break;
+                    case "dropDownBox": Parse_drop_down(cbx, dialog); break;
+                    case "editBox": Parse_edit_box(cbx, dialog); break;
+                    case "upDownEditBox": Parse_numericupdown(cbx, dialog); break;
+                    case "progressBar": Parse_progress_bar(cbx, dialog); break;
+                    case "clearContainer": Parse_container(cbx); break;
+                }
             }
         }
 
-        private void Parse_stream_box(XmlElement cbx, SkinnedMDIChild dyndialog)
+        private void Parse_stream_box(XmlElement cbx, SkinnedMDIChild dialog)
         {
             string id = cbx.GetAttribute("id");
+
             switch (id)
             {
                 case "spells":
-                    // Create a Panel control for the "spells" stream
-                    Panel panel = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new Panel() : (Panel)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-                    if (panel == null)
-                        return;
-                    panel.Name = cbx.GetAttribute("id");
-                    panel.Size = Build_size(cbx, int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")));
-                    // Spells background color
-                    panel.BackColor = this.formback;
-                    panel.Location = Set_location(cbx, (Control)panel, dyndialog);
-                    panel.AutoScroll = true;
-                    //panel.AutoSize = true;
-                    dyndialog.formBody.Controls.Add((Control)panel);
-
-                    // Add a Label control for each spell
-                    int y = 0;
-                    foreach (XmlNode node in cbx.ChildNodes)
                     {
-                        if (node is XmlElement elem && elem.Name == "d")
+                        var panel = GetOrCreateControl<Panel>(cbx, dialog);
+                        int spellPanelW = (int)(int.Parse(cbx.GetAttribute("width")) * FontScale);
+                        int spellPanelH = (int)(int.Parse(cbx.GetAttribute("height")) * FontScale);
+                        panel.Size = new Size(spellPanelW, spellPanelH);
+                        panel.BackColor = formback;
+                        panel.Location = SetLocation(cbx, panel, dialog);
+                        panel.AutoScroll = true;
+                        dialog.formBody.Controls.Add(panel);
+
+                        int y = 0;
+                        foreach (XmlNode node in cbx.ChildNodes)
                         {
-                            Label spellLabel = new Label
-                            {
-                                Text = elem.InnerText,
-                                AutoSize = true,
-                                Location = new Point(0, y),
-                                ForeColor = this.formfore
-                            };
-                            spellLabel.Font = new Font(spellLabel.Font, FontStyle.Underline);
-                            spellLabel.Tag = elem.GetAttribute("cmd");
-                            spellLabel.Click += SpellLabel_Click;
-                            panel.Controls.Add(spellLabel);
-                            y += spellLabel.Height + 5;
+                            if (!(node is XmlElement elem) || elem.Name != "d") continue;
+                            var lbl = MakeClickableLabel(elem.InnerText, elem.GetAttribute("cmd"), new Point(0, y), SpellLabel_Click);
+                            panel.Controls.Add(lbl);
+                            y += lbl.Height + 5;
                         }
+                        break;
                     }
-                    break;
+
                 case "spellInfo":
-                    // Create a RichTextBox control for other streams
-                    RichTextBox spellInfo = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new RichTextBox() : (RichTextBox)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-                    if (spellInfo == null)
-                        return;
-                    spellInfo.Name = cbx.GetAttribute("id");
-                    spellInfo.Rtf = cbx.GetAttribute("value");
-                    //spellInfo.Size = Build_size(cbx, int.Parse(cbx.GetAttribute("width")), int.Parse(cbx.GetAttribute("height")));
-                    //spellInfo.Size = dyndialog.ClientSize = new Size(300, 380);
-                    // spell info colors
-                    spellInfo.BackColor = this.formback;
-                    spellInfo.ForeColor = this.formfore;
-                    //spellInfo.Location = Set_location(cbx, (Control)spellInfo, dyndialog);
-                    spellInfo.Width = 300;
-                    spellInfo.Height = 380;
-                    spellInfo.Location = new Point(215, 40);
-                    spellInfo.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-                    spellInfo.BorderStyle = BorderStyle.None;
-                    spellInfo.Multiline = true;
-                    spellInfo.ScrollBars = RichTextBoxScrollBars.Vertical;
-                    spellInfo.ReadOnly = true;
-                    spellInfo.LinkClicked += Rtb_LinkClicked;
-                    spellInfo.DetectUrls = false;
-                    dyndialog.formBody.Controls.Add((Control)spellInfo);
-                    break;
+                    {
+                        var rtb = GetOrCreateControl<RichTextBox>(cbx, dialog);
+                        rtb.BackColor = formback;
+                        rtb.ForeColor = formfore;
+                        int spellListW = (int)(200 * FontScale);  // matches spells panel base width
+                        int infoLeft = spellListW + 10;
+                        rtb.Location = new Point(infoLeft, 40);
+                        rtb.Width = dialog.formBody.Width - infoLeft - 5;
+                        rtb.Height = (int)(380 * FontScale);
+                        rtb.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+                        rtb.BorderStyle = BorderStyle.None;
+                        rtb.Multiline = true;
+                        rtb.ScrollBars = RichTextBoxScrollBars.Vertical;
+                        rtb.ReadOnly = true;
+                        rtb.DetectUrls = false;
+                        rtb.LinkClicked += Rtb_LinkClicked;
+                        dialog.formBody.Controls.Add(rtb);
+                        break;
+                    }
+
+                case "featList":
+                    {
+                        var panel = GetOrCreateControl<Panel>(cbx, dialog);
+                        int featPanelW = (int)(int.Parse(cbx.GetAttribute("width")) * FontScale);
+                        int featPanelH = (int)(int.Parse(cbx.GetAttribute("height")) * FontScale);
+                        panel.Size = new Size(featPanelW, featPanelH);
+                        panel.BackColor = formback;
+                        panel.Location = SetLocation(cbx, panel, dialog);
+                        panel.AutoScroll = true;
+                        dialog.formBody.Controls.Add(panel);
+
+                        int y = 0;
+                        foreach (XmlNode node in cbx.ChildNodes)
+                        {
+                            if (!(node is XmlElement elem) || elem.Name != "d" ||
+                                string.IsNullOrWhiteSpace(elem.InnerText)) continue;
+                            var lbl = MakeClickableLabel(elem.InnerText, elem.GetAttribute("cmd"), new Point(0, y), FeatLabel_Click);
+                            panel.Controls.Add(lbl);
+                            y += lbl.Height + 5;
+                        }
+                        break;
+                    }
+
+                case "featInfo":
+                    {
+                        var rtb = GetOrCreateControl<RichTextBox>(cbx, dialog);
+                        rtb.BackColor = formback;
+                        rtb.ForeColor = formfore;
+                        int featListW = (int)(250 * FontScale);  // matches featList panel base width
+                        int infoLeft = featListW + 10;
+                        rtb.Location = new Point(infoLeft, 60);
+                        rtb.Width = dialog.formBody.Width - infoLeft - 5;
+                        rtb.Height = (int)(380 * FontScale);
+                        rtb.Anchor = AnchorStyles.Top | AnchorStyles.Right;
+                        rtb.BorderStyle = BorderStyle.None;
+                        rtb.Multiline = true;
+                        rtb.ScrollBars = RichTextBoxScrollBars.Vertical;
+                        rtb.ReadOnly = true;
+                        rtb.DetectUrls = false;
+                        dialog.formBody.Controls.Add(rtb);
+                        break;
+                    }
+
                 default:
-                    TextBox textBox = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new TextBox() : (TextBox)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-                    if (textBox == null)
-                        return;
-                    textBox.Name = cbx.GetAttribute("id");
-                    textBox.Text = cbx.GetAttribute("value");
-                    textBox.Size = this.Build_size(cbx, 200, 75);
-                    textBox.Location = this.Set_location(cbx, (Control)textBox, dyndialog);
-                    textBox.Multiline = true;
-                    textBox.ScrollBars = ScrollBars.Vertical;
-                    dyndialog.formBody.Controls.Add((Control)textBox);
-                    break;
+                    {
+                        var tb = GetOrCreateControl<TextBox>(cbx, dialog);
+                        tb.Text = cbx.GetAttribute("value");
+                        tb.Size = BuildSize(cbx, 200, 75);
+                        tb.Location = SetLocation(cbx, tb, dialog);
+                        tb.Multiline = true;
+                        tb.ScrollBars = ScrollBars.Vertical;
+                        dialog.formBody.Controls.Add(tb);
+                        break;
+                    }
             }
         }
 
-        private void Rtb_LinkClicked(object sender, LinkClickedEventArgs e)
+        private void Parse_close_button(XmlElement cbx, SkinnedMDIChild dialog)
         {
-            RichTextBox richTextBox = (RichTextBox)sender;
-            Point mousePos = richTextBox.PointToClient(Cursor.Position);
-            int index = richTextBox.GetCharIndexFromPosition(mousePos);
+            // Reuse any existing action button (spell choose, feat choose/unlearn)
+            Control existing = dialog.formBody.Controls.Find("chooseSpell", true).FirstOrDefault()
+                            ?? dialog.formBody.Controls.Find("chooseFeat", true).FirstOrDefault()
+                            ?? dialog.formBody.Controls.Find("unlearnFeat", true).FirstOrDefault();
 
-            int start = richTextBox.Text.LastIndexOf("<d", index);
-            int end = richTextBox.Text.IndexOf("</d>", index) + 4;
-            string linkText = richTextBox.Text.Substring(start, end - start);
-
-            XmlDocument doc = new XmlDocument();
-            doc.LoadXml("<root>" + linkText + "</root>");
-            if (doc.DocumentElement.FirstChild is XmlElement elem && elem.Name == "d" && elem.HasAttribute("cmd"))
+            if (existing is CmdButton existingBtn)
             {
-                ghost.SendText(elem.GetAttribute("cmd"));
-            }
-        }
-
-        private void Parse_numericupdown(XmlElement cbx, SkinnedMDIChild dyndialog)
-        {
-            NumericUpDown numericUpDown = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new NumericUpDown() : (NumericUpDown)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-            if (numericUpDown == null)
+                existingBtn.Text = cbx.GetAttribute("value");
+                existingBtn.cmd_string = cbx.HasAttribute("cmd") ? cbx.GetAttribute("cmd") : "";
+                existingBtn.Invalidate();
                 return;
-            if (cbx.HasAttribute("max"))
-                numericUpDown.Maximum = (Decimal)int.Parse(cbx.GetAttribute("max"));
-            if (cbx.HasAttribute("min"))
-                numericUpDown.Minimum = (Decimal)int.Parse(cbx.GetAttribute("min"));
-            numericUpDown.Name = cbx.GetAttribute("id");
-            numericUpDown.Text = cbx.GetAttribute("value");
-            numericUpDown.Value = (Decimal)int.Parse(cbx.GetAttribute("value"));
-            numericUpDown.Size = this.Build_size(cbx, 200, 75);
-            numericUpDown.Location = this.Set_location(cbx, (Control)numericUpDown, dyndialog);
-
-            dyndialog.formBody.Controls.Add((Control)numericUpDown);
-        }
-
-        private void Parse_edit_box(XmlElement cbx, SkinnedMDIChild dyndialog)
-        {
-            TextBox textBox = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new TextBox() : (TextBox)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-            if (textBox == null)
-                return;
-            textBox.Name = cbx.GetAttribute("id");
-            textBox.Text = cbx.GetAttribute("value");
-            SkinnedMDIChild window = FindWindowByName("bugDialogBox");
-            if (window != null)
-            {
-                textBox.TextChanged += (sender, e) => TextBox_TextChanged(sender, e, dyndialog);
-            }
-            textBox.Size = this.Build_size(cbx, 200, 75);
-            textBox.Location = this.Set_location(cbx, (Control)textBox, dyndialog);
-            if (cbx.HasAttribute("maxChars"))
-                textBox.MaxLength = int.Parse(cbx.GetAttribute("maxChars"));
-            textBox.Multiline = false;
-            textBox.WordWrap = true;
-            dyndialog.formBody.Controls.Add((Control)textBox);
-        }
-
-        private void TextBox_TextChanged(object sender, EventArgs e, SkinnedMDIChild dyndialog)
-        {
-            if (e is null)
-            {
-                throw new ArgumentNullException(nameof(e));
             }
 
-            SkinnedMDIChild window = FindWindowByName("bugDialogBox");
-            if (window != null)
-            {
-                // Get a reference to the TextBox control
-                TextBox textBox = sender as TextBox;
-
-                // Calculate the current character count
-                int charCount = textBox.Text.Length;
-
-                // Find the Label control that corresponds to the TextBox control
-                Label label;
-                int maxChars;
-                string labelText;
-                if (textBox.Name == "title")
-                {
-                    label = dyndialog.formBody.Controls["titleLabel"] as Label;
-                    label.Location = new Point(0, 105);
-                    maxChars = 128;
-                    labelText = "Title";
-                }
-                else if (textBox.Name == "details")
-                {
-                    label = dyndialog.formBody.Controls["detailsLabel"] as Label;
-                    label.Location = new Point(0, 135);
-                    maxChars = 875;
-                    labelText = "Details";
-                }
-                else
-                {
-                    return;
-                }
-
-                // Update the label with the current character count and maximum character count
-                label.Text = $"{labelText} {charCount}/{maxChars}";
-                label.AutoSize = true;
-                // Add the Label control to the form
-                dyndialog.formBody.Controls.Add(label);
-            }
-        }
-
-        private void Parse_check_box(XmlElement cbx, SkinnedMDIChild dyndialog)
-        {
-            cbCheckBox cbCheckBox = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new cbCheckBox() : (cbCheckBox)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-            if (cbCheckBox == null)
-                return;
-            cbCheckBox.Name = cbx.GetAttribute("id");
-            cbCheckBox.Text = cbx.GetAttribute("text");
-            cbCheckBox.checked_value = cbx.GetAttribute("checked_value");
-            cbCheckBox.unchecked_value = cbx.GetAttribute("unchecked_value");
-            cbCheckBox.Checked = cbx.HasAttribute("checked");
-            cbCheckBox.Size = this.Build_size(cbx, 200, 20);
-            cbCheckBox.Location = this.Set_location(cbx, (Control)cbCheckBox, dyndialog);
-            dyndialog.formBody.Controls.Add((Control)cbCheckBox);
-        }
-
-        private void Parse_radio_button(XmlElement cbx, SkinnedMDIChild dyndialog)
-        {
-            CbRadio cbRadio = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new CbRadio() : (CbRadio)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-            if (cbRadio == null)
-                return;
-            cbRadio.Name = cbx.GetAttribute("id");
-            cbRadio.Text = cbx.GetAttribute("text");
-            cbRadio.command = cbx.GetAttribute("cmd");
-            cbRadio.group = cbx.GetAttribute("group");
-            if (cbx.GetAttribute("value").Contains("0"))
-                cbRadio.Checked = false;
-            else
-                cbRadio.Checked = true;
-            cbRadio.CheckedChanged += new EventHandler(this.CbRadioSelect);
-            cbRadio.Size = this.Build_size(cbx, 200, 20);
-            cbRadio.Location = this.Set_location(cbx, (Control)cbRadio, dyndialog);
-            cbRadio.Click += new EventHandler(this.CbRadioSelect);
-            dyndialog.formBody.Controls.Add((Control)cbRadio);
-        }
-
-        private void Parse_progress_bar(XmlElement cbx, SkinnedMDIChild dyndialog)
-        {
-            ProgressBar progressBar = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new ProgressBar() : (ProgressBar)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-            if (progressBar == null)
-                return;
-            progressBar.Name = cbx.GetAttribute("id");
-            progressBar.Text = cbx.GetAttribute("text");
-            progressBar.Style = ProgressBarStyle.Continuous;
-            int.TryParse(cbx.GetAttribute("value"), out int result);
-            progressBar.Value = result;
-            progressBar.Size = this.Build_size(cbx, 200, 20);
-            progressBar.Location = this.Set_location(cbx, (Control)progressBar, dyndialog);
-            dyndialog.formBody.Controls.Add((Control)progressBar);
-        }
-
-        private void Parse_close_button(XmlElement cbx, SkinnedMDIChild dyndialog)
-        {
-            // Find the existing choose button control
-            Control chooseButton = dyndialog.formBody.Controls.Find("chooseSpell", true).FirstOrDefault();
-
-            // Check if the choose button was found
-            if (chooseButton != null)
-            {
-                // Update the text and command of the choose button
-                chooseButton.Text = cbx.GetAttribute("value");
-                ((CmdButton)chooseButton).cmd_string = !cbx.HasAttribute("cmd") ? "" : cbx.GetAttribute("cmd");
-
-                // Redraw the choose button
-                chooseButton.Invalidate();
-            }
-            else
-            {
-                // Create a new closeButton if it doesn't exist
-                CmdButton closeButton = new CmdButton
-                {
-                    Name = cbx.GetAttribute("id"),
-                    Text = cbx.GetAttribute("value"), // Set the Text property to the value of the value attribute
-                    AutoSize = true,
-                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                    cmd_string = !cbx.HasAttribute("cmd") ? "" : cbx.GetAttribute("cmd")
-                };
-                closeButton.Location = this.Set_location(cbx, (Control)closeButton, dyndialog);
-                closeButton.Click += new EventHandler(this.CbClose);
-                dyndialog.formBody.Controls.Add((Control)closeButton);
-                dyndialog.CloseCommand = (Button)closeButton;
-            }
-        }
-
-        private void Parse_drop_down(XmlElement cbx, SkinnedMDIChild dyndialog)
-        {
-            cbDropBox cbDropBox = new cbDropBox
+            var btn = new CmdButton
             {
                 Name = cbx.GetAttribute("id"),
                 Text = cbx.GetAttribute("value"),
-                content_handler_data = new Hashtable()
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                cmd_string = cbx.HasAttribute("cmd") ? cbx.GetAttribute("cmd") : ""
             };
-            string[] strArray1 = cbx.GetAttribute("content_text").Split(',');
-            string[] strArray2 = cbx.GetAttribute("content_value").Split(',');
-            for (int index = 0; index < strArray1.Length; ++index)
-            {
-                cbDropBox.content_handler_data.Add((object)strArray1[index], (object)strArray2[index]);
-                cbDropBox.Items.Add((object)strArray1[index]);
-            }
-            if (cbx.HasAttribute("cmd"))
-            {
-                cbDropBox.cmd = cbx.GetAttribute("cmd");
-                cbDropBox.SelectedIndexChanged += new EventHandler(this.Cb_SelectedIndexChanged);
-            }
-            cbDropBox.Size = this.Build_size(cbx, 55, 20);
-            if (cbDropBox.Name == "locationSettingDD")
-            {
-                Point currentLocation = this.Set_location(cbx, (Control)cbDropBox, dyndialog);
-                cbDropBox.Location = new Point(currentLocation.X + 10, currentLocation.Y);
-            }
-            else
-            cbDropBox.Location = this.Set_location(cbx, (Control)cbDropBox, dyndialog);
-            dyndialog.formBody.Controls.Add((Control)cbDropBox);
-
+            btn.Location = SetLocation(cbx, btn, dialog);
+            btn.Click += CbClose;
+            dialog.formBody.Controls.Add(btn);
+            dialog.CloseCommand = btn;
         }
 
-        private void Parse_command_buttons(XmlElement cbx, SkinnedMDIChild dyndialog)
+        private void Parse_command_buttons(XmlElement cbx, SkinnedMDIChild dialog)
         {
-            CmdButton cmdButton = new CmdButton
+            var btn = new CmdButton
             {
                 Name = cbx.GetAttribute("id"),
                 Text = cbx.GetAttribute("value"),
@@ -1155,327 +786,607 @@ namespace DynamicWindows
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink
             };
-            if (cbx.GetAttribute("id") == "changeCustom" || cbx.GetAttribute("id") == "changeCustomString")
-            {
-                Point location = this.Set_location(cbx, (Control)cmdButton, dyndialog);
-                if (location.X == 353)
-                    location.X += 8;
-                cmdButton.Location = location;
-            }
-            else
-            {
-                cmdButton.Location = this.Set_location(cbx, (Control)cmdButton, dyndialog);
-            }
-            cmdButton.Click += new EventHandler(this.CbCommand);
-            dyndialog.formBody.Controls.Add((Control)cmdButton);
+
+            // Two specific buttons need a small X offset correction
+            Point loc = SetLocation(cbx, btn, dialog);
+            if ((cbx.GetAttribute("id") == "changeCustom" || cbx.GetAttribute("id") == "changeCustomString") && loc.X == 353)
+                loc.X += 8;
+            btn.Location = loc;
+
+            btn.Click += CbCommand;
+            dialog.formBody.Controls.Add(btn);
         }
 
-        private void Parse_labels(XmlElement cbx, SkinnedMDIChild dyndialog)
+        private void Parse_labels(XmlElement cbx, SkinnedMDIChild dialog)
         {
-            Label label = !dyndialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id")) ? new Label() : (Label)dyndialog.formBody.Controls[cbx.GetAttribute("id")];
-            label.Text = cbx.GetAttribute("value");
-            label.Name = cbx.GetAttribute("id");
-            label.AutoSize = true;
-            label.Size = this.Build_size(cbx, 200, 15);
-            //if (!cbx.HasAttribute("width"))
-            if (TextRenderer.MeasureText(label.Text, label.Font).Width > 0)
-                label.Width = TextRenderer.MeasureText(label.Text, label.Font).Width;
-            SkinnedMDIChild windowbug = FindWindowByName("bugDialogBox");
-            if (windowbug != null)
+            var lbl = dialog.formBody.Controls.ContainsKey(cbx.GetAttribute("id"))
+                ? (Label)dialog.formBody.Controls[cbx.GetAttribute("id")]
+                : new Label();
+
+            lbl.Text = cbx.GetAttribute("value");
+            lbl.Name = cbx.GetAttribute("id");
+            lbl.AutoSize = true;
+            lbl.Size = BuildSize(cbx, 200, 15);
+
+            int measuredWidth = TextRenderer.MeasureText(lbl.Text, lbl.Font).Width;
+            if (measuredWidth > 0) lbl.Width = measuredWidth;
+
+            // Bug dialog has fixed label positions
+            var bugWin = FindWindowByName("bugDialogBox");
+            if (bugWin != null)
             {
                 switch (cbx.GetAttribute("id"))
                 {
-                    case "categoryLabel":
-                        label.Location = new Point(30, 75);
-                        break;
-                    case "titleLabel":
-                        label.Location = new Point(30, 105);
-                        break;
-                    case "detailsLabel":
-                        label.Location = new Point(30, 135);
-                        break;
+                    case "categoryLabel": lbl.Location = new Point(30, 75); break;
+                    case "titleLabel": lbl.Location = new Point(30, 105); break;
+                    case "detailsLabel": lbl.Location = new Point(30, 135); break;
+                    default: lbl.Location = SetLocation(cbx, lbl, dialog); break;
                 }
             }
             else
-                label.Location = this.Set_location(cbx, (Control)label, dyndialog);
-            if (dyndialog.formBody.Controls.Contains((Control)label))
-                return;
-            dyndialog.formBody.Controls.Add((Control)label);
+            {
+                lbl.Location = SetLocation(cbx, lbl, dialog);
+            }
+
+            if (!dialog.formBody.Controls.Contains(lbl))
+                dialog.formBody.Controls.Add(lbl);
+        }
+
+        private void Parse_check_box(XmlElement cbx, SkinnedMDIChild dialog)
+        {
+            var cb = GetOrCreateControl<cbCheckBox>(cbx, dialog);
+            cb.Text = cbx.GetAttribute("text");
+            cb.checked_value = cbx.GetAttribute("checked_value");
+            cb.unchecked_value = cbx.GetAttribute("unchecked_value");
+            cb.Checked = cbx.HasAttribute("checked");
+            cb.Size = BuildSize(cbx, 200, 20);
+            cb.Location = SetLocation(cbx, cb, dialog);
+            dialog.formBody.Controls.Add(cb);
+        }
+
+        private void Parse_radio_button(XmlElement cbx, SkinnedMDIChild dialog)
+        {
+            var rb = GetOrCreateControl<CbRadio>(cbx, dialog);
+            rb.Text = cbx.GetAttribute("text");
+            rb.command = cbx.GetAttribute("cmd");
+            rb.group = cbx.GetAttribute("group");
+            rb.Checked = !cbx.GetAttribute("value").Contains("0");
+            rb.Size = BuildSize(cbx, 200, 20);
+            rb.Location = SetLocation(cbx, rb, dialog);
+            rb.CheckedChanged += CbRadioSelect;
+            rb.Click += CbRadioSelect;
+            dialog.formBody.Controls.Add(rb);
+        }
+
+        private void Parse_numericupdown(XmlElement cbx, SkinnedMDIChild dialog)
+        {
+            var nud = GetOrCreateControl<NumericUpDown>(cbx, dialog);
+            if (cbx.HasAttribute("max")) nud.Maximum = int.Parse(cbx.GetAttribute("max"));
+            if (cbx.HasAttribute("min")) nud.Minimum = int.Parse(cbx.GetAttribute("min"));
+            nud.Text = cbx.GetAttribute("value");
+            nud.Value = int.Parse(cbx.GetAttribute("value"));
+            nud.Size = BuildSize(cbx, 200, 75);
+            nud.Location = SetLocation(cbx, nud, dialog);
+            dialog.formBody.Controls.Add(nud);
+        }
+
+        private void Parse_edit_box(XmlElement cbx, SkinnedMDIChild dialog)
+        {
+            var tb = GetOrCreateControl<TextBox>(cbx, dialog);
+            tb.Text = cbx.GetAttribute("value");
+            tb.Size = BuildSize(cbx, 200, 75);
+            tb.Location = SetLocation(cbx, tb, dialog);
+            tb.Multiline = false;
+            tb.WordWrap = true;
+            if (cbx.HasAttribute("maxChars"))
+                tb.MaxLength = int.Parse(cbx.GetAttribute("maxChars"));
+            if (FindWindowByName("bugDialogBox") != null)
+                tb.TextChanged += (s, e) => TextBox_TextChanged(s, e, dialog);
+            dialog.formBody.Controls.Add(tb);
+        }
+
+        private void Parse_progress_bar(XmlElement cbx, SkinnedMDIChild dialog)
+        {
+            var pb = GetOrCreateControl<ProgressBar>(cbx, dialog);
+            pb.Style = ProgressBarStyle.Continuous;
+            int.TryParse(cbx.GetAttribute("value"), out int val);
+            pb.Value = val;
+            pb.Size = BuildSize(cbx, 200, 20);
+            pb.Location = SetLocation(cbx, pb, dialog);
+            dialog.formBody.Controls.Add(pb);
+        }
+
+        private void Parse_drop_down(XmlElement cbx, SkinnedMDIChild dialog)
+        {
+            var dd = new cbDropBox
+            {
+                Name = cbx.GetAttribute("id"),
+                Text = cbx.GetAttribute("value"),
+                content_handler_data = new Hashtable()
+            };
+
+            string[] labels = cbx.GetAttribute("content_text").Split(',');
+            string[] values = cbx.GetAttribute("content_value").Split(',');
+            for (int i = 0; i < labels.Length; i++)
+            {
+                dd.content_handler_data.Add(labels[i], values[i]);
+                dd.Items.Add(labels[i]);
+            }
+
+            if (cbx.HasAttribute("cmd"))
+            {
+                dd.cmd = cbx.GetAttribute("cmd");
+                dd.SelectedIndexChanged += Cb_SelectedIndexChanged;
+            }
+
+            dd.Size = BuildSize(cbx, 55, 20);
+            Point loc = SetLocation(cbx, dd, dialog);
+            dd.Location = dd.Name == "locationSettingDD" ? new Point(loc.X + 10, loc.Y) : loc;
+
+            dialog.formBody.Controls.Add(dd);
+        }
+
+        // =====================================================================
+        // Event handlers – label clicks
+        // =====================================================================
+
+        private void SpellLabel_Click(object sender, EventArgs e)
+        {
+            var label = (Label)sender;
+            string cmd = (string)label.Tag;
+            ghost.SendText(cmd);
+
+            Form form = label.FindForm();
+            ResetLabelColors(form, "spells");
+            label.ForeColor = Color.Blue;
+
+            UpdateActionButton(form, "chooseSpell", "Choose " + label.Text, cmd);
+        }
+
+        private void FeatLabel_Click(object sender, EventArgs e)
+        {
+            var label = (Label)sender;
+            string cmd = (string)label.Tag;
+
+            Form form = label.FindForm();
+            ResetLabelColors(form, "featList");
+            label.ForeColor = Color.Blue;
+
+            // Clear info pane for fresh content
+            if (form.Controls.Find("featInfo", true).FirstOrDefault() is RichTextBox rtb)
+                rtb.Clear();
+
+            // Works for both choose and unlearn dialogs
+            Control actionBtn = form.Controls.Find("chooseFeat", true).FirstOrDefault()
+                             ?? form.Controls.Find("unlearnFeat", true).FirstOrDefault();
+            if (actionBtn is CmdButton btn)
+            {
+                btn.Text = (btn.Name == "unlearnFeat" ? "Unlearn " : "Choose ") + label.Text;
+                btn.cmd_string = cmd;
+            }
+
+            ghost.SendText(cmd);
+        }
+
+        private void Rtb_LinkClicked(object sender, LinkClickedEventArgs e)
+        {
+            var rtb = (RichTextBox)sender;
+            Point mouse = rtb.PointToClient(Cursor.Position);
+            int index = rtb.GetCharIndexFromPosition(mouse);
+            int start = rtb.Text.LastIndexOf("<d", index);
+            int end = rtb.Text.IndexOf("</d>", index) + 4;
+            string chunk = rtb.Text.Substring(start, end - start);
+
+            var doc = new XmlDocument();
+            doc.LoadXml("<root>" + chunk + "</root>");
+            if (doc.DocumentElement.FirstChild is XmlElement elem &&
+                elem.Name == "d" && elem.HasAttribute("cmd"))
+                ghost.SendText(elem.GetAttribute("cmd"));
+        }
+
+        // =====================================================================
+        // Event handlers – buttons
+        // =====================================================================
+
+        public void CbClose(object sender, EventArgs e)
+        {
+            var btn = (CmdButton)sender;
+            var panel = (Panel)btn.Parent;
+            var dialog = (SkinnedMDIChild)btn.FindForm();
+            string cmd = btn.cmd_string;
+            string ddValue = "";
+
+            if (cmd.Length > 2)
+            {
+                if (cmd.Contains("%"))
+                {
+                    foreach (Control ctrl in panel.Controls)
+                    {
+                        switch (ctrl)
+                        {
+                            case CbRadio rb when rb.Checked:
+                                cmd = cmd.Replace("%" + rb.group + "%", rb.command + " ");
+                                break;
+                            case cbDropBox dd:
+                                if (dd.SelectedIndex > -1)
+                                    ddValue = (string)dd.content_handler_data[dd.Items[dd.SelectedIndex]];
+                                if (ctrl.Name == "province1") cmd = cmd.Replace("%province1%", ddValue);
+                                if (ctrl.Name == "bank1") cmd = cmd.Replace("%bank1%", ddValue);
+                                else if (ctrl.Name == "bank2") cmd = cmd.Replace("%bank2%", ddValue);
+                                if (ctrl.Name == "category")
+                                {
+                                    cmd = cmd.Replace("%category%", dd.Text.Remove(dd.Text.IndexOf(" ")));
+                                    cmd = cmd.Replace("%title%", ";%title%");
+                                    cmd = cmd.Replace("%details%", ";%details%");
+                                }
+                                break;
+                            default:
+                                cmd = cmd.Replace("%" + ctrl.Name + "%", ctrl.Text);
+                                break;
+                        }
+                    }
+                }
+
+                if (btn.Name == "chooseSpell")
+                    ghost.SendText(btn.Text + " Spell");
+                else if (btn.Name == "chooseFeat" || btn.Name == "unlearnFeat")
+                    ghost.SendText(btn.cmd_string);
+                else if (btn.Name == "confirmOK")
+                    ghost.SendText(cmd);
+                else if (ddValue == "")
+                {
+                    forms.Remove(dialog);
+                    dialog.Close();
+                    return;
+                }
+                else
+                    ghost.SendText(cmd.Replace(";", "\\;"));
+            }
+
+            forms.Remove(dialog);
+            dialog.Close();
         }
 
         public void CbCommand(object sender, EventArgs e)
         {
-            CmdButton cmdButton = (CmdButton)sender;
-            Panel panel = (Panel)cmdButton.Parent;
-            string str1 = cmdButton.cmd_string;
-            string str2 = "";
-            if (cmdButton.cmd_string.Contains("%"))
+            var btn = (CmdButton)sender;
+            var panel = (Panel)btn.Parent;
+            string cmd = btn.cmd_string;
+            string ddValue = "";
+
+            if (cmd.Contains("%"))
             {
-                foreach (Control control in (ArrangedElementCollection)panel.Controls)
+                foreach (Control ctrl in panel.Controls)
                 {
-                    switch (control)
+                    switch (ctrl)
                     {
-                        case CbRadio _:
-                            if (((RadioButton)control).Checked)
+                        case CbRadio rb when rb.Checked:
+                            cmd = cmd.Replace("%" + rb.group + "%", rb.command + " ");
+                            break;
+                        case cbCheckBox cb:
+                            cmd = cmd.Replace("%" + ctrl.Name + "%", cb.value + " ");
+                            break;
+                        case cbDropBox dd:
+                            if (dd.SelectedIndex > -1)
+                                ddValue = (string)dd.content_handler_data[dd.Items[dd.SelectedIndex]];
+                            if (ctrl.Name == "province1") cmd = cmd.Replace("%province1%", ddValue);
+                            if (ctrl.Name == "bank1") cmd = cmd.Replace("%bank1%", ddValue);
+                            else if (ctrl.Name == "bank2") cmd = cmd.Replace("%bank2%", ddValue);
+                            if (ctrl.Name == "category")
                             {
-                                str1 = str1.Replace("%" + ((CbRadio)control).group + "%", ((CbRadio)control).command + " ");
-                                continue;
+                                cmd = cmd.Replace("%category%", dd.Text.Remove(dd.Text.IndexOf(" ")));
+                                cmd = cmd.Replace("%title%", ";%title%");
+                                cmd = cmd.Replace("%details%", ";%details%");
                             }
-                            continue;
-                        case cbCheckBox _:
-                            str1 = str1.Replace("%" + control.Name + "%", ((cbCheckBox)control).value + " ");
-                            continue;
-                        case cbDropBox _:
-                            cbDropBox cbDropBox = (cbDropBox)control;
-                            if (cbDropBox.SelectedIndex > -1)
-                                str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
-                            if (control.Name == "province1")
-                                str1 = str1.Replace("%province1%", str2);
-                            if (control.Name == "bank1")
-                                str1 = str1.Replace("%bank1%", str2);
-                            else if (control.Name == "bank2")
-                                str1 = str1.Replace("%bank2%", str2);
-                            if (control.Name == "category")
-                            {
-                                str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")));
-                                str1 = str1.Replace("%title%", ";%title%");
-                                str1 = str1.Replace("%details%", ";%details%");
-                            }
-                            continue;
+                            break;
                         default:
-                            str1 = str1.Replace("%" + control.Name + "%", control.Text + " ");
-                            continue;
+                            cmd = cmd.Replace("%" + ctrl.Name + "%", ctrl.Text + " ");
+                            break;
                     }
                 }
-                if (cmdButton.Text.Equals("Clear"))
+
+                if (btn.Text.Equals("Clear"))
                 {
-                    this.forms.Remove((object)(Form)((Control)sender).Parent);
-                    ((Form)cmdButton.Parent).Close();
+                    forms.Remove((Form)btn.Parent);
+                    ((Form)btn.Parent).Close();
+                    return;
                 }
             }
 
-            if (cmdButton.Text == "Update Toggles")
+            if (btn.Text == "Update Toggles" || cmd.Contains("profile /set"))
             {
-                ghost.SendText(str1);
+                ghost.SendText(cmd);
                 ghost.SendText("profile /edit");
             }
-            else if (str1.Contains("profile /set"))
-            {
-                ghost.SendText(str1);
-                ghost.SendText("profile /edit");
-            }
-            else if (str1.Contains("profile /toggle im"))
+            else if (cmd.Contains("profile /toggle im"))
             {
                 ghost.SendText("profile /edit");
             }
             else
             {
-                this.ghost.SendText(str1.Replace(";", "\\;"));
+                ghost.SendText(cmd.Replace(";", "\\;"));
+            }
+        }
+
+        public void CbRadioSelect(object sender, EventArgs e)
+        {
+            var rb = (CbRadio)sender;
+            if (!rb.Checked || !rb.Focused) return;
+
+            foreach (Control ctrl in rb.Parent.Controls)
+            {
+                if (ctrl is CbRadio other && other.group == rb.group)
+                    other.Checked = (other == rb);
+            }
+
+            if (!string.IsNullOrEmpty(rb.command))
+            {
+                InjuriesWindow.currentInjuryCommand = rb.command;
+                ghost.SendText(rb.command);
             }
         }
 
         public void Cb_SelectedIndexChanged(object sender, EventArgs e)
         {
-            cbDropBox cbDropBox = (cbDropBox)sender;
-            string str = "";
+            var dd = (cbDropBox)sender;
+            string cmd = dd.cmd;
 
-            if (cbDropBox.cmd.Contains("%"))
+            if (cmd.Contains("%") && dd.SelectedIndex > -1)
             {
-                string newValue = "";
-                if (cbDropBox.SelectedIndex > -1)
-                    newValue = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
-
-                str = cbDropBox.cmd.Replace("%" + cbDropBox.Name + "%", newValue);
-            }
-            else
-            {
-                str = cbDropBox.cmd;
+                string val = (string)dd.content_handler_data[dd.Items[dd.SelectedIndex]];
+                cmd = cmd.Replace("%" + dd.Name + "%", val);
             }
 
-            this.ghost.SendText(str.Replace(";", "\\;"));
+            ghost.SendText(cmd.Replace(";", "\\;"));
 
-            // reload after dropdown profile change
-            if (str.StartsWith("profile /set"))
-            {
-                this.ghost.SendText("profile /edit");
-            }
+            if (cmd.StartsWith("profile /set"))
+                ghost.SendText("profile /edit");
         }
+
+        // =====================================================================
+        // TextBox change tracker (bug report dialog character counter)
+        // =====================================================================
+
+        private void TextBox_TextChanged(object sender, EventArgs e, SkinnedMDIChild dialog)
+        {
+            if (FindWindowByName("bugDialogBox") == null) return;
+
+            var tb = (TextBox)sender;
+            int count = tb.Text.Length;
+
+            Label lbl;
+            int maxChars;
+            string labelName;
+
+            switch (tb.Name)
+            {
+                case "title":
+                    lbl = dialog.formBody.Controls["titleLabel"] as Label;
+                    maxChars = 128;
+                    labelName = "Title";
+                    if (lbl != null) lbl.Location = new Point(0, 105);
+                    break;
+                case "details":
+                    lbl = dialog.formBody.Controls["detailsLabel"] as Label;
+                    maxChars = 875;
+                    labelName = "Details";
+                    if (lbl != null) lbl.Location = new Point(0, 135);
+                    break;
+                default: return;
+            }
+
+            if (lbl == null) return;
+            lbl.Text = $"{labelName} {count}/{maxChars}";
+            lbl.AutoSize = true;
+            if (!dialog.formBody.Controls.Contains(lbl))
+                dialog.formBody.Controls.Add(lbl);
+        }
+
+        // =====================================================================
+        // CloseCommand stub (required by SkinnedMDIChild)
+        // =====================================================================
 
         public void CloseCommand(Button cb)
         {
-            if (cb is null)
-            {
-                throw new ArgumentNullException(nameof(cb));
-            }
+            if (cb is null) throw new ArgumentNullException(nameof(cb));
         }
 
-        public void CbClose(object sender, EventArgs e)
+        // =====================================================================
+        // Layout helpers
+        // =====================================================================
+
+        private Size BuildSize(XmlElement cbx, int defaultWidth, int defaultHeight)
         {
-            CmdButton cmdButton = sender as CmdButton;
-            Panel panel = (Panel)cmdButton.Parent;
-            SkinnedMDIChild skinnedMdiChild = (SkinnedMDIChild)cmdButton.FindForm();
-            string str2 = "";
-            if (cmdButton.cmd_string.Length > 2)
-            {
-                string str1 = cmdButton.cmd_string;
-                if (cmdButton.cmd_string.Contains("%"))
-                {
-                    foreach (Control control in (ArrangedElementCollection)panel.Controls)
-                    {
-                        switch (control)
-                        {
-                            case CbRadio _:
-                                if (((RadioButton)control).Checked)
-                                {
-                                    str1 = str1.Replace("%" + ((CbRadio)control).group + "%", ((CbRadio)control).command + " ");
-                                    continue;
-                                }
-                                continue;
-                            case cbDropBox _:
-                                cbDropBox cbDropBox = (cbDropBox)control;
-                                if (cbDropBox.SelectedIndex > -1)
-                                    str2 = (string)cbDropBox.content_handler_data[cbDropBox.Items[cbDropBox.SelectedIndex]];
-                                if (control.Name == "province1")
-                                    str1 = str1.Replace("%province1%", str2);
-                                if (control.Name == "bank1")
-                                    str1 = str1.Replace("%bank1%", str2);
-                                else if (control.Name == "bank2")
-                                    str1 = str1.Replace("%bank2%", str2);
-                                if (control.Name == "category")
-                                {
-                                    str1 = str1.Replace("%category%", cbDropBox.Text.Remove(cbDropBox.Text.IndexOf(" ")));
-                                    str1 = str1.Replace("%title%", ";%title%");
-                                    str1 = str1.Replace("%details%", ";%details%");
-                                }
-                                continue;
-                            default:
-                                str1 = str1.Replace("%" + control.Name + "%", control.Text);
-                                continue;
-                        }
-                    }
-                }
-                if (cmdButton.Name == "chooseSpell")
-                    ghost.SendText(cmdButton.Text + " Spell");
-                else if (cmdButton.Name == "confirmOK")
-                    ghost.SendText(str1);
-                else if (str2 == "")
-                {
-                    this.forms.Remove((object)skinnedMdiChild);
-                    skinnedMdiChild.Close();
-                }
-                else
-                    this.ghost.SendText(str1.Replace(";", "\\;"));
-            }
-
-            this.forms.Remove((object)skinnedMdiChild);
-            skinnedMdiChild.Close();
-        }
-
-        public void CbRadioSelect(object sender, EventArgs e)
-        {
-            CbRadio clickedRadio = (CbRadio)sender;
-
-            // Only proceed if the radio was just checked and the event is from the user
-            if (!clickedRadio.Checked || !clickedRadio.Focused)
-                return;
-
-            // Uncheck all radios in the same group
-            foreach (Control control in clickedRadio.Parent.Controls)
-            {
-                if (control is CbRadio radio && radio.group == clickedRadio.group)
-                {
-                    radio.Checked = (radio == clickedRadio);
-                }
-            }
-
-            // Send command
-            if (!string.IsNullOrEmpty(clickedRadio.command))
-            {
-                InjuriesWindow.currentInjuryCommand = clickedRadio.command;
-                ghost.SendText(clickedRadio.command);
-            }
-        }
-
-        private Size Build_size(XmlElement cbx, int width, int height)
-        {
-            int w = cbx.HasAttribute("width") ? int.Parse(cbx.GetAttribute("width")) : width;
-            int h = cbx.HasAttribute("height") ? int.Parse(cbx.GetAttribute("height")) : height;
+            int w = cbx.HasAttribute("width") ? int.Parse(cbx.GetAttribute("width")) : defaultWidth;
+            int h = cbx.HasAttribute("height") ? int.Parse(cbx.GetAttribute("height")) : defaultHeight;
             return new Size(w, h);
         }
 
-        private Point Set_location(XmlElement cbx, Control cont, SkinnedMDIChild p_form)
+        private Point SetLocation(XmlElement cbx, Control ctrl, SkinnedMDIChild parent)
         {
-            int.TryParse(cbx.GetAttribute("top"), out int result2);
-            int.TryParse(cbx.GetAttribute("left"), out int result1);
+            int.TryParse(cbx.GetAttribute("top"), out int top);
+            int.TryParse(cbx.GetAttribute("left"), out int left);
 
             if (cbx.HasAttribute("align"))
             {
-                if (cbx.GetAttribute("align").Equals("center"))
+                switch (cbx.GetAttribute("align"))
                 {
-                    result2 = p_form.formBody.Height / 2 - cont.ClientSize.Height / 2 + result2;
-                    result1 = p_form.formBody.Width / 2 - cont.ClientSize.Width / 2 + result1;
+                    case "center":
+                        top = parent.formBody.Height / 2 - ctrl.ClientSize.Height / 2 + top;
+                        left = parent.formBody.Width / 2 - ctrl.ClientSize.Width / 2 + left;
+                        break;
+                    case "s":
+                        ctrl.Anchor = AnchorStyles.Bottom;
+                        left = parent.formBody.Width / 2 - ctrl.ClientSize.Width / 2 + left;
+                        break;
+                    case "se": ctrl.Anchor = AnchorStyles.Bottom | AnchorStyles.Right; break;
+                    case "sw": ctrl.Anchor = AnchorStyles.Bottom | AnchorStyles.Left; break;
+                    case "n":
+                        ctrl.Anchor = AnchorStyles.Top;
+                        left = parent.formBody.Width / 2 - ctrl.ClientSize.Width / 2 + left;
+                        break;
+                    case "ne": ctrl.Anchor = AnchorStyles.Top | AnchorStyles.Right; break;
+                    case "nw": ctrl.Anchor = AnchorStyles.Top | AnchorStyles.Left; break;
                 }
-                else if (cbx.GetAttribute("align").Equals("s"))
-                {
-                    cont.Anchor = AnchorStyles.Bottom;
-                    result1 = p_form.formBody.Width / 2 - cont.ClientSize.Width / 2 + result1;
-                }
-                else if (cbx.GetAttribute("align").Equals("se"))
-                    cont.Anchor = AnchorStyles.Bottom | AnchorStyles.Right;
-                else if (cbx.GetAttribute("align").Equals("sw"))
-                    cont.Anchor = AnchorStyles.Bottom | AnchorStyles.Left;
-                else if (cbx.GetAttribute("align").Equals("n"))
-                {
-                    cont.Anchor = AnchorStyles.Top;
-                    result1 = p_form.formBody.Width / 2 - cont.ClientSize.Width / 2 + result1;
-                }
-                else if (cbx.GetAttribute("align").Equals("ne"))
-                    cont.Anchor = AnchorStyles.Top | AnchorStyles.Right;
-                else if (cbx.GetAttribute("align").Equals("nw"))
-                    cont.Anchor = AnchorStyles.Top | AnchorStyles.Left;
             }
             else if (cbx.HasAttribute("anchor_left"))
             {
-                Control control = p_form.formBody.Controls[cbx.GetAttribute("anchor_left")];
-                int num1 = result2;
-                int num2 = result1;
-                result1 = control.Left + control.Width + num2 + 5;
-                result2 = num1;
-                if (result2 == 0)
-                    result2 = control.Top;
+                Control anchor = parent.formBody.Controls[cbx.GetAttribute("anchor_left")];
+                left = anchor.Left + anchor.Width + left + 5;
+                if (top == 0) top = anchor.Top;
             }
             else if (cbx.HasAttribute("anchor_right"))
             {
-                Control control = p_form.formBody.Controls[cbx.GetAttribute("anchor_right")];
-                int num1 = result2;
-                int num2 = result1;
-                result1 = control.Left - num2 - cont.Width - 5;
-                result2 = num1;
-                if (result2 == 0)
-                    result2 = control.Top;
+                Control anchor = parent.formBody.Controls[cbx.GetAttribute("anchor_right")];
+                left = anchor.Left - left - ctrl.Width - 5;
+                if (top == 0) top = anchor.Top;
             }
+
             if (cbx.HasAttribute("anchor_top"))
             {
-                Control control = p_form.formBody.Controls[cbx.GetAttribute("anchor_top")];
-                result2 = result2 + control.Bottom + 2;
-                if (result2 == 0)
-                    result2 = control.Top;
+                Control anchor = parent.formBody.Controls[cbx.GetAttribute("anchor_top")];
+                top += anchor.Bottom + 2;
+                if (top == 0) top = anchor.Top;
             }
-            if (result2 < 0)
-                result2 = p_form.formBody.Height - cont.Height + result2;
-            if (result1 < 0)
-                result1 = p_form.formBody.Width - cont.Width + result1;
-            if (result2 + cont.Height > p_form.formBody.Height)
+
+            // Negative values mean "offset from the far edge"
+            if (top < 0) top = parent.formBody.Height - ctrl.Height + top;
+            if (left < 0) left = parent.formBody.Width - ctrl.Width + left;
+
+            // Expand the parent if the control would overflow
+            if (top + ctrl.Height > parent.formBody.Height)
+                parent.ClientSize = new Size(parent.ClientSize.Width, parent.ClientSize.Height + (top + ctrl.Height - parent.formBody.Height) + 2);
+            if (left + ctrl.Width > parent.formBody.Width)
+                parent.ClientSize = new Size(parent.ClientSize.Width + (left + ctrl.Width - parent.formBody.Width) + 2, parent.ClientSize.Height);
+
+            return new Point(left, top);
+        }
+
+        // =====================================================================
+        // Private utility methods
+        // =====================================================================
+
+        /// <summary>
+        /// Expands a dialog's client size so all controls fit without clipping.
+        /// Measures the furthest right and bottom edge across all controls in formBody,
+        /// then grows the window if needed. A small padding is added on each edge.
+        /// </summary>
+        private void AutoFitDialog(SkinnedMDIChild dialog, int padRight = 12, int padBottom = 12)
+        {
+            int maxRight = 0;
+            int maxBottom = 0;
+
+            foreach (Control ctrl in dialog.formBody.Controls)
             {
-                int num = result2 + cont.Height - p_form.formBody.Height;
-                p_form.ClientSize = new Size(p_form.ClientSize.Width, p_form.ClientSize.Height + num + 2);
+                int r = ctrl.Right;
+                int b = ctrl.Bottom;
+                if (r > maxRight) maxRight = r;
+                if (b > maxBottom) maxBottom = b;
             }
-            if (result1 + cont.Width > p_form.formBody.Width)
+
+            int neededWidth = maxRight + padRight;
+            int neededHeight = maxBottom + padBottom;
+
+            if (neededWidth > dialog.formBody.Width || neededHeight > dialog.formBody.Height)
             {
-                int num = result1 + cont.Width - p_form.formBody.Width;
-                p_form.ClientSize = new Size(p_form.ClientSize.Width + num + 2, p_form.ClientSize.Height);
+                int newClientW = Math.Max(dialog.ClientSize.Width, neededWidth);
+                int newClientH = Math.Max(dialog.ClientSize.Height, neededHeight + 22); // +22 for title bar
+                dialog.ClientSize = new Size(newClientW, newClientH);
             }
-            return new Point(result1, result2);
+        }
+
+        /// <summary>Creates a themed, positioned SkinnedMDIChild and adds it to the forms list.</summary>
+        private SkinnedMDIChild CreateSkinnedWindow(string id, string title, int width, int height)
+        {
+            var win = new SkinnedMDIChild(ghost, this)
+            {
+                MdiParent = pForm,
+                Text = title,
+                ForeColor = formfore,
+                Name = id,
+                ClientSize = new Size(width, height)
+            };
+            win.formBody.ForeColor = formfore;
+            win.formBody.Font = new Font(ResolvedFontFamily, fontSize, FontStyle.Regular);
+            win.FormClosed += (s, e) => loadSave.Save();
+
+            if (positionList.ContainsKey(id))
+            {
+                win.StartPosition = FormStartPosition.Manual;
+                win.Location = positionList[id];
+            }
+            else
+            {
+                win.StartPosition = FormStartPosition.CenterScreen;
+            }
+
+            forms.Add(win);
+            return win;
+        }
+
+        /// <summary>Finds an open window by name, or returns null.</summary>
+        private SkinnedMDIChild FindWindowByName(string name)
+        {
+            foreach (SkinnedMDIChild win in forms)
+            {
+                if (win.Name == name && !win.IsDisposed)
+                    return win;
+            }
+            return null;
+        }
+
+        /// <summary>Closes and removes a window from the forms list if it is open.</summary>
+        private void CloseWindowIfOpen(string name)
+        {
+            var win = FindWindowByName(name);
+            if (win == null) return;
+            forms.Remove(win);
+            win.Close();
+        }
+
+        /// <summary>Gets an existing typed control by id from the dialog, or creates a new one.</summary>
+        private T GetOrCreateControl<T>(XmlElement cbx, SkinnedMDIChild dialog) where T : Control, new()
+        {
+            string id = cbx.GetAttribute("id");
+            if (dialog.formBody.Controls.ContainsKey(id) && dialog.formBody.Controls[id] is T existing)
+                return existing;
+            var ctrl = new T { Name = id };
+            return ctrl;
+        }
+
+        /// <summary>Creates a styled, clickable underlined label used in spell/feat lists.</summary>
+        private Label MakeClickableLabel(string text, string cmd, Point location, EventHandler clickHandler)
+        {
+            var lbl = new Label
+            {
+                Text = text,
+                AutoSize = true,
+                Location = location,
+                ForeColor = formfore,
+                Font = new Font(ResolvedFontFamily, fontSize, FontStyle.Underline),
+                Tag = cmd
+            };
+            lbl.Click += clickHandler;
+            return lbl;
+        }
+
+        /// <summary>Resets all label ForeColors inside a named panel back to the default foreground color.</summary>
+        private void ResetLabelColors(Form form, string panelName)
+        {
+            var panel = form.Controls.Find(panelName, true).FirstOrDefault();
+            if (panel == null) return;
+            foreach (var lbl in panel.Controls.OfType<Label>())
+                lbl.ForeColor = formfore;
+        }
+
+        /// <summary>Finds a CmdButton by name and updates its text and command string.</summary>
+        private void UpdateActionButton(Form form, string buttonName, string text, string cmd)
+        {
+            if (form.Controls.Find(buttonName, true).FirstOrDefault() is CmdButton btn)
+            {
+                btn.Text = text;
+                btn.cmd_string = cmd;
+            }
         }
     }
 }

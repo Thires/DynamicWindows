@@ -21,7 +21,8 @@ namespace DynamicWindows
             { "leftArm", new Point(25, 48) }, { "rightArm", new Point(80, 48) },
             { "leftHand", new Point(8, 92) }, { "rightHand", new Point(92, 92) },
             { "leftLeg", new Point(34, 125) }, { "rightLeg", new Point(70, 125) },
-            { "leftEye", new Point(4, 2) }, { "rightEye", new Point(92, 2) }, { "nsys", new Point(4, 48) }
+            { "leftEye", new Point(4, 2) }, { "rightEye", new Point(92, 2) },
+            { "nsys", new Point(4, 48) }, { "rightFoot", new Point(92, 150) }
         };
 
         private readonly Dictionary<string, Point> scarMarkerPositions;
@@ -30,6 +31,15 @@ namespace DynamicWindows
         {
             this.plugin = plugin;
             this.scarMarkerPositions = new Dictionary<string, Point>(injuryMarkerPositions);
+        }
+
+        /// <summary>Returns the correct body image based on whether the command is external or internal.</summary>
+        private Image GetBodyImage(string command)
+        {
+            bool isInternal = command != null &&
+                              (command.Contains("_injury 3") || command.Contains("_injury 4") || command.Contains("_injury 5"));
+            string resourceName = isInternal ? "body_image_int" : "body_image_ext";
+            return (Image)Properties.Resources.ResourceManager.GetObject(resourceName);
         }
 
         public void Create(string id, string title)
@@ -53,34 +63,37 @@ namespace DynamicWindows
                 }
             }
 
-                SkinnedMDIChild window = new SkinnedMDIChild(plugin.ghost, plugin);
-                window.MdiParent = plugin.pForm;
-                window.Text = title;
-                window.Name = id;
-                window.ClientSize = new Size(230, 290);
-                window.StartPosition = FormStartPosition.Manual;
-                window.Location = plugin.positionList.ContainsKey(id) ? plugin.positionList[id] : new Point(100, 100);
+            SkinnedMDIChild window = new SkinnedMDIChild(plugin.ghost, plugin);
+            window.MdiParent = plugin.pForm;
+            window.Text = title;
+            window.Name = id;
+            window.ClientSize = new Size(230, 290);
+            window.StartPosition = FormStartPosition.Manual;
+            window.Location = plugin.positionList.ContainsKey(id) ? plugin.positionList[id] : new Point(100, 100);
 
-                window.LocationChanged += delegate { plugin.positionList[id] = window.Location; };
-                window.formBody.BackColor = plugin.formback;
-                window.formBody.ForeColor = plugin.formfore;
-                window.formBody.AutoScroll = false;
+            window.LocationChanged += delegate { plugin.positionList[id] = window.Location; };
+            window.formBody.BackColor = plugin.formback;
+            window.formBody.ForeColor = plugin.formfore;
+            window.formBody.AutoScroll = false;
 
-                Panel panel = new Panel();
-                panel.Name = "injurySilhouette";
-                panel.Size = new Size(120, 200);
-                panel.Location = new Point(10, 10);
-                panel.BackColor = Color.Transparent;
+            Panel panel = new Panel();
+            panel.Name = "injurySilhouette";
+            panel.Size = new Size(120, 200);
+            panel.Location = new Point(10, 10);
+            panel.BackColor = Color.Transparent;
 
-                panel.BackgroundImage = Properties.Resources.body_image;
-                panel.BackgroundImageLayout = ImageLayout.Zoom;
-                window.formBody.Controls.Add(panel);
-                otherPanels[id] = panel;
+            string checkedCmd = null;
+            windowInjuryCommands.TryGetValue(id, out checkedCmd);
 
-                string[] labels = { "E Wound", "I Wound", "E Scar", "I Scar", "E Both", "I Both" };
-                string characterSuffix = id.Replace("injuries-", "");
+            panel.BackgroundImage = GetBodyImage(checkedCmd);
+            panel.BackgroundImageLayout = ImageLayout.Zoom;
+            window.formBody.Controls.Add(panel);
+            otherPanels[id] = panel;
 
-                string[] cmds = {
+            string[] labels = { "E Wound", "I Wound", "E Scar", "I Scar", "E Both", "I Both" };
+            string characterSuffix = id.Replace("injuries-", "");
+
+            string[] cmds = {
                 "_injury 0 -" + characterSuffix,
                 "_injury 3 -" + characterSuffix,
                 "_injury 1 -" + characterSuffix,
@@ -88,39 +101,38 @@ namespace DynamicWindows
                 "_injury 2 -" + characterSuffix,
                 "_injury 5 -" + characterSuffix
             };
-                int y = 10;
-
-            string checkedCmd = null;
-            windowInjuryCommands.TryGetValue(id, out checkedCmd);
+            int y = 10;
 
             for (int i = 0; i < labels.Length; i++)
-                {
-                    CbRadio radio = new CbRadio();
-                    radio.Name = "injr_" + i;
-                    radio.Text = labels[i];
-                    radio.group = "injureMode";
-                    radio.command = cmds[i];
-                    radio.Checked = (checkedCmd == null ? i == 0 : cmds[i] == checkedCmd);
-                    radio.Location = new Point(140, y);
-                    radio.Size = new Size(100, 20);
+            {
+                CbRadio radio = new CbRadio();
+                radio.Name = "injr_" + i;
+                radio.Text = labels[i];
+                radio.group = "injureMode";
+                radio.command = cmds[i];
+                radio.Checked = (checkedCmd == null ? i == 0 : cmds[i] == checkedCmd);
+                radio.Location = new Point(140, y);
+                radio.Size = new Size(100, 20);
 
-                    radio.CheckedChanged += delegate (object sender, EventArgs e)
+                radio.CheckedChanged += delegate (object sender, EventArgs e)
+                {
+                    CbRadio r = (CbRadio)sender;
+                    if (r.Checked)
                     {
-                        CbRadio r = (CbRadio)sender;
-                        if (r.Checked)
-                        {
-                            windowInjuryCommands[id] = r.command;
-                            plugin.ghost.SendText(r.command);
-                            window.BringToFront();
-                        }
-                    };
-                    window.formBody.Controls.Add(radio);
-                    y += 20;
-                }
-                plugin.forms.Add(window);
-                window.ShowForm();
+                        windowInjuryCommands[id] = r.command;
+                        if (otherPanels.TryGetValue(id, out Panel p))
+                            p.BackgroundImage = GetBodyImage(r.command);
+                        plugin.ghost.SendText(r.command);
+                        window.BringToFront();
+                    }
+                };
+                window.formBody.Controls.Add(radio);
+                y += 20;
             }
-        
+            plugin.forms.Add(window);
+            window.ShowForm();
+        }
+
 
         public void Update(string id, XmlElement elem)
         {
@@ -167,6 +179,8 @@ namespace DynamicWindows
                         if (r.Checked)
                         {
                             windowInjuryCommands[thisId] = r.command;
+                            if (otherPanels.TryGetValue(thisId, out Panel p))
+                                p.BackgroundImage = GetBodyImage(r.command);
                             plugin.ghost.SendText(r.command);
                             window.BringToFront();
                         }
@@ -303,9 +317,9 @@ namespace DynamicWindows
             string command;
             if (!windowInjuryCommands.TryGetValue(id, out command))
                 command = "_injury 0 -1";
-            if (command.Contains("_injury 0")) return new List<string> { "Injury1", "Injury2", "Injury3" };
-            if (command.Contains("_injury 1")) return new List<string> { "Scar1", "Scar2", "Scar3" };
-            if (command.Contains("_injury 2")) return new List<string> { "Injury1", "Injury2", "Injury3", "Injury4", "Injury5", "Scar1", "Scar2", "Scar3" };
+            if (command.Contains("_injury 0")) return new List<string> { "Injury1", "Injury2", "Injury3", "Nsys1", "Nsys2", "Nsys3" };
+            if (command.Contains("_injury 1")) return new List<string> { "Scar1", "Scar2", "Scar3", "Nsys1", "Nsys2", "Nsys3" };
+            if (command.Contains("_injury 2")) return new List<string> { "Injury1", "Injury2", "Injury3", "Injury4", "Injury5", "Scar1", "Scar2", "Scar3", "Nsys1", "Nsys2", "Nsys3" };
             if (command.Contains("_injury 3")) return new List<string> { "Injury1", "Injury2", "Injury3", "Injury4", "Injury5", "Nsys1", "Nsys2", "Nsys3" };
             if (command.Contains("_injury 4")) return new List<string> { "Scar1", "Scar2", "Scar3", "Nsys1", "Nsys2", "Nsys3" };
             if (command.Contains("_injury 5")) return new List<string> { "Injury1", "Injury2", "Injury3", "Scar1", "Scar2", "Scar3", "Nsys1", "Nsys2", "Nsys3" };

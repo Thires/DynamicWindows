@@ -220,7 +220,7 @@ namespace DynamicWindows
             this.cbDisableOtherInjuries.TabIndex = 14;
             this.cbDisableOtherInjuries.Text = "Disable Empath Healing";
             this.cbDisableOtherInjuries.UseVisualStyleBackColor = true;
-            this.cbDisableOtherInjuries.CheckedChanged += new System.EventHandler(this.cbDisableOtherInjuries_CheckedChanged);
+            this.cbDisableOtherInjuries.CheckedChanged += new System.EventHandler(this.CbDisableOtherInjuries_CheckedChanged);
             // 
             // cbDisableSelfInjuries
             // 
@@ -233,7 +233,7 @@ namespace DynamicWindows
             this.cbDisableSelfInjuries.TabIndex = 15;
             this.cbDisableSelfInjuries.Text = "Disable Self Injuries";
             this.cbDisableSelfInjuries.UseVisualStyleBackColor = true;
-            this.cbDisableSelfInjuries.CheckedChanged += new System.EventHandler(this.cbDisableSelfInjuries_CheckedChanged);
+            this.cbDisableSelfInjuries.CheckedChanged += new System.EventHandler(this.CbDisableSelfInjuries_CheckedChanged);
             // 
             // FormOptionWindow
             // 
@@ -420,14 +420,14 @@ namespace DynamicWindows
         }
 
 
-        private void cbDisableOtherInjuries_CheckedChanged(object sender, EventArgs e)
+        private void CbDisableOtherInjuries_CheckedChanged(object sender, EventArgs e)
         {
             this._plugin.bDisableOtherInjuries = cbDisableOtherInjuries.Checked;
             this._plugin.loadSave.Save();
         }
 
 
-        private void cbDisableSelfInjuries_CheckedChanged(object sender, EventArgs e)
+        private void CbDisableSelfInjuries_CheckedChanged(object sender, EventArgs e)
         {
             this._plugin.bDisableSelfInjuries = cbDisableSelfInjuries.Checked;
             this._plugin.loadSave.Save();
