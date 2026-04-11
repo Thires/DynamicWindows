@@ -12,7 +12,7 @@ profile /edit<br>
 store window<br>
 tdp plan<br>
 spells choosing<br>
-magicial feats choosing<br>
+magical feats choosing<br>
 
 <img width="495" height="236" alt="image" src="https://github.com/user-attachments/assets/f17c2bf3-9779-4d63-9c8d-4fec513d91da" />
 <img width="241" height="164" alt="image" src="https://github.com/user-attachments/assets/e9c26290-84e5-4f0c-b7bb-6911eb908723" />
