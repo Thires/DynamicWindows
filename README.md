@@ -25,7 +25,10 @@ magical feats choosing<br>
 
 <img width="492" height="449" alt="image" src="https://github.com/user-attachments/assets/c9c07024-ad14-4ad3-ab57-941611ddbd34" />
 
-<img width="444" height="505" alt="image" src="https://github.com/user-attachments/assets/e19a7d58-ed40-4ba2-a6a3-6cf5b3d493f1" />
+
+
+<img width="444" height="499" alt="image" src="https://github.com/user-attachments/assets/025a4815-e9dc-4939-8737-ce777b973427" />
+
 <img width="367" height="592" alt="image" src="https://github.com/user-attachments/assets/4adfb852-3516-4ecf-b7c1-5db4a95a4090" />
 
 
