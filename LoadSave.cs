@@ -12,47 +12,96 @@ namespace DynamicWindows
     {
         private readonly Plugin plugin;
         private readonly string configPath;
-        private readonly string characterName;
+
+        // ── Defaults ─────────────────────────────────────────────────────────
+        private static readonly Color DefaultFore = Color.White;
+        private static readonly Color DefaultBack = Color.Black;
+        private const bool DefaultStow = false;
+        private const bool DefaultEnabled = true;
+        private const bool DefaultDisableOther = true;
+        private const bool DefaultDisableSelf = true;
 
         public LoadSave(Plugin plugin, string configPath, string characterName)
         {
             this.plugin = plugin;
             this.configPath = configPath;
-            this.characterName = characterName;
         }
+
+        // ── Helpers ───────────────────────────────────────────────────────────
+
+        /// <summary>Character name normalised to title-case so "atee"/"ATEE"/"Atee" all resolve the same.</summary>
+        private string CharName =>
+            NormaliseName(plugin.ghost?.get_Variable("charactername") ?? "Default");
+
+        private static string NormaliseName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "Default";
+            return char.ToUpperInvariant(name[0]) + name.Substring(1).ToLowerInvariant();
+        }
+
+        // ── Load ──────────────────────────────────────────────────────────────
 
         public void Load()
         {
             string filePath = Path.Combine(configPath, "DynamicWindows.xml");
-            if (!File.Exists(filePath))
-                return;
+            if (!File.Exists(filePath)) return;
 
             XmlDocument xml = new XmlDocument();
             xml.Load(filePath);
 
-            string characterName = plugin.ghost.get_Variable("charactername") ?? "Default";
-            string prefix = characterName + ".";
-
-            // Reset global state so old character settings don't carry over
-            plugin.formfore = Color.White;
-            plugin.formback = Color.Black;
-            plugin.bStowContainer = false;
-            plugin.bPluginEnabled = true;
-            plugin.bDisableOtherInjuries = true;
-            plugin.bDisableSelfInjuries = true;
+            // 1. Start from hard-coded defaults
+            plugin.formfore = DefaultFore;
+            plugin.formback = DefaultBack;
+            plugin.bStowContainer = DefaultStow;
+            plugin.bPluginEnabled = DefaultEnabled;
+            plugin.bDisableOtherInjuries = DefaultDisableOther;
+            plugin.bDisableSelfInjuries = DefaultDisableSelf;
             plugin.ignorelist.Clear();
             plugin.positionList.Clear();
 
-            // Load configs
+            // 2. Apply global defaults from XML (id has no dot prefix)
+            ApplyConfigs(xml, "");
+
+            // 3. Apply per-character overrides (id prefixed with "CharName.")
+            string prefix = CharName + ".";
+            ApplyConfigs(xml, prefix);
+
+            // Load ignore list
+            foreach (XmlElement ignore in xml.GetElementsByTagName("Ignore"))
+            {
+                string id = ignore.GetAttribute("id");
+                string cleanId = StripPrefix(id, prefix);
+                if (cleanId != null)
+                    plugin.ignorelist.Add(cleanId);
+            }
+
+            // Load window positions — preserve any already-open windows first
+            foreach (SkinnedMDIChild window in plugin.forms)
+                plugin.positionList[window.Name] = window.Location;
+
+            foreach (XmlElement pos in xml.GetElementsByTagName("Position"))
+            {
+                string id = pos.GetAttribute("id");
+                string cleanId = StripPrefix(id, prefix);
+                if (cleanId == null) continue;
+
+                if (int.TryParse(pos.GetAttribute("X"), out int x) &&
+                    int.TryParse(pos.GetAttribute("Y"), out int y))
+                {
+                    plugin.positionList[cleanId] = new Point(x, y);
+                }
+            }
+        }
+
+        private void ApplyConfigs(XmlDocument xml, string prefix)
+        {
             foreach (XmlElement element in xml.GetElementsByTagName("Config"))
             {
                 string id = element.GetAttribute("id");
-                if (!id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                    continue;
+                string cleanId = StripPrefix(id, prefix);
+                if (cleanId == null) continue;
 
-                string key = id.Substring(prefix.Length);
-
-                switch (key)
+                switch (cleanId)
                 {
                     case "foreground":
                         plugin.formfore = ColorTranslator.FromHtml(element.GetAttribute("color"));
@@ -74,37 +123,26 @@ namespace DynamicWindows
                         break;
                 }
             }
-
-            // Load ignore list
-            foreach (XmlElement ignore in xml.GetElementsByTagName("Ignore"))
-            {
-                string id = ignore.GetAttribute("id");
-                if (id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    plugin.ignorelist.Add(id.Substring(prefix.Length));
-                }
-            }
-
-            foreach (SkinnedMDIChild window in this.plugin.forms)
-            {
-                this.plugin.positionList[window.Name] = window.Location;
-            }
-
-            // Load window positions
-            foreach (XmlElement pos in xml.GetElementsByTagName("Position"))
-            {
-                string id = pos.GetAttribute("id");
-                if (id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    string cleanId = id.Substring(prefix.Length);
-                    if (int.TryParse(pos.GetAttribute("X"), out int x) &&
-                        int.TryParse(pos.GetAttribute("Y"), out int y))
-                    {
-                        plugin.positionList[cleanId] = new Point(x, y);
-                    }
-                }
-            }
         }
+
+        /// <summary>
+        /// Returns the part of <paramref name="id"/> after <paramref name="prefix"/>,
+        /// or null if it doesn't match.
+        /// For the global prefix (empty string), only matches ids with no dot at all.
+        /// </summary>
+        private static string StripPrefix(string id, string prefix)
+        {
+            if (prefix == "")
+            {
+                // Global entry: id must contain no dot
+                return id.Contains('.') ? null : id;
+            }
+            if (id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                return id.Substring(prefix.Length);
+            return null;
+        }
+
+        // ── Save ──────────────────────────────────────────────────────────────
 
         public void Save()
         {
@@ -123,40 +161,30 @@ namespace DynamicWindows
                 xml.AppendChild(root);
             }
 
-            // Get current character prefix
-            string characterName = plugin.ghost.get_Variable("charactername") ?? "Default";
-            string prefix = characterName + ".";
+            string prefix = CharName + ".";
 
-            // Only remove nodes for current character
-            List<XmlNode> toRemove = new List<XmlNode>();
-            foreach (XmlNode node in root.ChildNodes)
-            {
-                if (node is XmlElement el && el.HasAttribute("id") && el.GetAttribute("id").StartsWith(prefix))
-                {
-                    toRemove.Add(el);
-                }
-            }
-            foreach (XmlNode node in toRemove)
-            {
-                root.RemoveChild(node);
-            }
+            // Remove only this character's existing entries
+            RemoveByPrefix(root, prefix);
 
-            // Add new character-specific settings
-            void AddConfig(string id, string attr, string val)
-            {
-                XmlElement cfg = xml.CreateElement("Config");
-                cfg.SetAttribute("id", prefix + id);
-                cfg.SetAttribute(attr, val);
-                root.AppendChild(cfg);
-            }
+            // Collect current window positions
+            foreach (SkinnedMDIChild window in plugin.forms)
+                plugin.positionList[window.Name] = window.Location;
 
-            AddConfig("foreground", "color", ColorTranslator.ToHtml(plugin.formfore));
-            AddConfig("background", "color", ColorTranslator.ToHtml(plugin.formback));
-            AddConfig("stowcontainer", "enabled", plugin.bStowContainer.ToString());
-            AddConfig("plugin", "pluginenabled", plugin.bPluginEnabled.ToString());
-            AddConfig("disableOtherInjuries", "otherenabled", plugin.bDisableOtherInjuries.ToString());
-            AddConfig("disableSelfInjuries", "selfenabled", plugin.bDisableSelfInjuries.ToString());
+            // Save per-character overrides — only values that differ from defaults
+            if (plugin.formfore != DefaultFore)
+                AddConfig(xml, root, prefix, "foreground", "color", ColorTranslator.ToHtml(plugin.formfore));
+            if (plugin.formback != DefaultBack)
+                AddConfig(xml, root, prefix, "background", "color", ColorTranslator.ToHtml(plugin.formback));
+            if (plugin.bStowContainer != DefaultStow)
+                AddConfig(xml, root, prefix, "stowcontainer", "enabled", plugin.bStowContainer.ToString());
+            if (plugin.bPluginEnabled != DefaultEnabled)
+                AddConfig(xml, root, prefix, "plugin", "pluginenabled", plugin.bPluginEnabled.ToString());
+            if (plugin.bDisableOtherInjuries != DefaultDisableOther)
+                AddConfig(xml, root, prefix, "disableOtherInjuries", "otherenabled", plugin.bDisableOtherInjuries.ToString());
+            if (plugin.bDisableSelfInjuries != DefaultDisableSelf)
+                AddConfig(xml, root, prefix, "disableSelfInjuries", "selfenabled", plugin.bDisableSelfInjuries.ToString());
 
+            // Ignore list
             foreach (string id in plugin.ignorelist)
             {
                 XmlElement ign = xml.CreateElement("Ignore");
@@ -164,44 +192,53 @@ namespace DynamicWindows
                 root.AppendChild(ign);
             }
 
-            foreach (Form f in plugin.forms)
-            {
-                if (!plugin.positionList.ContainsKey(f.Name))
-                    plugin.positionList[f.Name] = f.Location;
-            }
-
-            foreach (SkinnedMDIChild window in this.plugin.forms)
-            {
-                this.plugin.positionList[window.Name] = window.Location;
-            }
-
+            // Window positions — skip injuries-NNN entries
             foreach (var pair in plugin.positionList)
             {
-                // don't other injuries-numbers positions
-                if (!pair.Key.StartsWith("injuries-"))
-                {
-                    XmlElement pos = xml.CreateElement("Position");
-                    pos.SetAttribute("id", prefix + pair.Key);
-                    pos.SetAttribute("X", pair.Value.X.ToString());
-                    pos.SetAttribute("Y", pair.Value.Y.ToString());
-                    root.AppendChild(pos);
-                }
+                if (pair.Key.StartsWith("injuries-")) continue;
+
+                XmlElement pos = xml.CreateElement("Position");
+                pos.SetAttribute("id", prefix + pair.Key);
+                pos.SetAttribute("X", pair.Value.X.ToString());
+                pos.SetAttribute("Y", pair.Value.Y.ToString());
+                root.AppendChild(pos);
             }
 
-            xml.Save(Path.Combine(configPath, "DynamicWindows.xml"));
+            xml.Save(filePath);
+        }
+
+        // ── Helpers ───────────────────────────────────────────────────────────
+
+        private static void RemoveByPrefix(XmlElement root, string prefix)
+        {
+            var toRemove = new List<XmlNode>();
+            foreach (XmlNode node in root.ChildNodes)
+            {
+                if (node is XmlElement el && el.HasAttribute("id") &&
+                    el.GetAttribute("id").StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                    toRemove.Add(el);
+            }
+            foreach (XmlNode node in toRemove)
+                root.RemoveChild(node);
+        }
+
+        private static void AddConfig(XmlDocument xml, XmlElement root,
+                                      string prefix, string id, string attr, string val)
+        {
+            XmlElement cfg = xml.CreateElement("Config");
+            cfg.SetAttribute("id", prefix + id);
+            cfg.SetAttribute(attr, val);
+            root.AppendChild(cfg);
         }
 
         public bool IsIgnored(string fullId)
         {
-            string characterName = plugin.ghost.get_Variable("charactername") ?? "Default";
-            string expectedPrefix = characterName + ".";
-
-            // Only strip if it's prefixed — fallback to raw ID otherwise
-            string cleanId = fullId.StartsWith(expectedPrefix)
-                ? fullId.Substring(expectedPrefix.Length)
+            string prefix = CharName + ".";
+            string cleanId = fullId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
+                ? fullId.Substring(prefix.Length)
                 : fullId;
-
-            return plugin.ignorelist.Cast<string>().Any(x => x.Equals(cleanId, StringComparison.OrdinalIgnoreCase));
+            return plugin.ignorelist.Cast<string>()
+                          .Any(x => x.Equals(cleanId, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

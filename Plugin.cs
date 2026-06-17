@@ -1,4 +1,5 @@
 ﻿using GeniePlugin.Interfaces;
+using GeniePLugin.DynamicWindows;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -44,10 +45,11 @@ namespace DynamicWindows
         private InjuriesOthersWindow injuriesOthersWindow;
         private readonly Dictionary<string, InjuriesOthersWindow> injuryWindows = new Dictionary<string, InjuriesOthersWindow>();
         private string lastConnectionStatus = "";
+        private AimTimer _aimTimer;
 
         // ── IPlugin metadata ─────────────────────────────────────────────────
         public string Name => "Dynamic Windows";
-        public string Version => "2.2.6";
+        public string Version => "2.3.0";
         public string Author => "Multiple Developers";
         public string Description => "Displays content windows specified through the XML stream from the game.";
 
@@ -72,6 +74,8 @@ namespace DynamicWindows
                 loadSave.Load();
                 injuriesWindow = new InjuriesWindow(this);
                 injuriesOthersWindow = new InjuriesOthersWindow(this);
+                _aimTimer = new AimTimer(this);
+
             }
             catch (Exception ex)
             {
@@ -95,6 +99,7 @@ namespace DynamicWindows
                 window.Close();
 
             forms.Clear();
+            _aimTimer.Dispose();
         }
 
         public void VariableChanged(string variable)
@@ -233,6 +238,10 @@ namespace DynamicWindows
                                 if (!bDisableSelfInjuries)
                                     injuriesWindow.Create(elem);
                             }
+                            else if (id == "AimTimerDialog")          // ← ADD THIS BRANCH
+                            {
+                                _aimTimer.OnOpen();
+                            }
                             else
                             {
                                 Parse_xml_openwindow(elem);
@@ -249,6 +258,12 @@ namespace DynamicWindows
                             {
                                 if (!bDisableSelfInjuries)
                                     injuriesWindow.Update(elem);
+                            }
+                            else if (id == "AimTimerDialog")           // ← ADD THIS BRANCH
+                            {
+                                var timerNode = elem.SelectSingleNode("timer[@id='firingTimer']") as XmlElement;
+                                if (timerNode != null && long.TryParse(timerNode.GetAttribute("value"), out long epoch))
+                                    _aimTimer.OnTimerValue(epoch);
                             }
                             else
                             {
@@ -399,7 +414,11 @@ namespace DynamicWindows
 
         private void Parse_xml_closewindow(XmlElement elem)
         {
-            CloseWindowIfOpen(elem.GetAttribute("id"));
+            string id = elem.GetAttribute("id");
+            if (id == "AimTimerDialog")               // ← ADD THIS BRANCH
+                _aimTimer.OnClose();
+            else
+                CloseWindowIfOpen(id);
         }
 
         private void Parse_xml_exposestream(XmlElement elem)
@@ -1296,7 +1315,7 @@ namespace DynamicWindows
         }
 
         /// <summary>Creates a themed, positioned SkinnedMDIChild and adds it to the forms list.</summary>
-        private SkinnedMDIChild CreateSkinnedWindow(string id, string title, int width, int height)
+        public SkinnedMDIChild CreateSkinnedWindow(string id, string title, int width, int height)
         {
             var win = new SkinnedMDIChild(ghost, this)
             {
@@ -1325,7 +1344,7 @@ namespace DynamicWindows
         }
 
         /// <summary>Finds an open window by name, or returns null.</summary>
-        private SkinnedMDIChild FindWindowByName(string name)
+        public SkinnedMDIChild FindWindowByName(string name)
         {
             foreach (SkinnedMDIChild win in forms)
             {
@@ -1336,7 +1355,7 @@ namespace DynamicWindows
         }
 
         /// <summary>Closes and removes a window from the forms list if it is open.</summary>
-        private void CloseWindowIfOpen(string name)
+        public void CloseWindowIfOpen(string name)
         {
             var win = FindWindowByName(name);
             if (win == null) return;
