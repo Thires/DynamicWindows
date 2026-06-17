@@ -1,6 +1,7 @@
 # DynamicWindows
 creates windows for DragonRealms when using genie frontend<br>
 can handle:<br>
+aim timer<br>
 bank debt<br>
 bank deposit<br>
 bank transfer<br>
@@ -13,6 +14,7 @@ profile /edit<br>
 spells choosing<br>
 store window<br>
 tdp plan<br>
+<img width="211" height="80" alt="image" src="https://github.com/user-attachments/assets/2d138bd9-1b31-43ff-8395-35abdde478f1" />
 
 <img width="495" height="236" alt="image" src="https://github.com/user-attachments/assets/f17c2bf3-9779-4d63-9c8d-4fec513d91da" />
 <img width="241" height="164" alt="image" src="https://github.com/user-attachments/assets/e9c26290-84e5-4f0c-b7bb-6911eb908723" />
