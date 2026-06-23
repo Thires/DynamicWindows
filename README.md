@@ -11,6 +11,7 @@ injury window for others<br>
 injury window for self<br>
 magical feats choosing<br>
 profile /edit<br>
+shopping window<br>
 spells choosing<br>
 store window<br>
 tdp plan<br>
