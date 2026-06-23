@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
@@ -20,6 +20,11 @@ namespace DynamicWindows
         private const bool DefaultEnabled = true;
         private const bool DefaultDisableOther = true;
         private const bool DefaultDisableSelf = true;
+        private const float DefaultScale = 1.0f;
+        private static readonly string DefaultFontFamily = SystemFonts.DefaultFont.Name;
+        private const FontStyle DefaultFontStyle = FontStyle.Regular;
+        private static readonly Color DefaultLinkColor = Color.Blue;
+        private static readonly Color DefaultTimerColor = Color.RoyalBlue;
 
         public LoadSave(Plugin plugin, string configPath, string characterName)
         {
@@ -29,7 +34,6 @@ namespace DynamicWindows
 
         // ── Helpers ───────────────────────────────────────────────────────────
 
-        /// <summary>Character name normalised to title-case so "atee"/"ATEE"/"Atee" all resolve the same.</summary>
         private string CharName =>
             NormaliseName(plugin.ghost?.get_Variable("charactername") ?? "Default");
 
@@ -46,7 +50,7 @@ namespace DynamicWindows
             string filePath = Path.Combine(configPath, "DynamicWindows.xml");
             if (!File.Exists(filePath)) return;
 
-            XmlDocument xml = new XmlDocument();
+            var xml = new XmlDocument();
             xml.Load(filePath);
 
             // 1. Start from hard-coded defaults
@@ -56,10 +60,15 @@ namespace DynamicWindows
             plugin.bPluginEnabled = DefaultEnabled;
             plugin.bDisableOtherInjuries = DefaultDisableOther;
             plugin.bDisableSelfInjuries = DefaultDisableSelf;
+            plugin.Scale = DefaultScale;
+            plugin.FontFamilyName = DefaultFontFamily;
+            plugin.FontStyleChoice = DefaultFontStyle;
+            plugin.linkColor = DefaultLinkColor;
+            plugin.timerBarColor = DefaultTimerColor;
             plugin.ignorelist.Clear();
             plugin.positionList.Clear();
 
-            // 2. Apply global defaults from XML (id has no dot prefix)
+            // 2. Apply global defaults from XML (id has no dot)
             ApplyConfigs(xml, "");
 
             // 3. Apply per-character overrides (id prefixed with "CharName.")
@@ -70,19 +79,19 @@ namespace DynamicWindows
             foreach (XmlElement ignore in xml.GetElementsByTagName("Ignore"))
             {
                 string id = ignore.GetAttribute("id");
-                string cleanId = StripPrefix(id, prefix);
+                string? cleanId = StripPrefix(id, prefix);
                 if (cleanId != null)
                     plugin.ignorelist.Add(cleanId);
             }
 
             // Load window positions — preserve any already-open windows first
-            foreach (SkinnedMDIChild window in plugin.forms)
+            foreach (DwForm window in plugin.forms)
                 plugin.positionList[window.Name] = window.Location;
 
             foreach (XmlElement pos in xml.GetElementsByTagName("Position"))
             {
                 string id = pos.GetAttribute("id");
-                string cleanId = StripPrefix(id, prefix);
+                string? cleanId = StripPrefix(id, prefix);
                 if (cleanId == null) continue;
 
                 if (int.TryParse(pos.GetAttribute("X"), out int x) &&
@@ -98,7 +107,7 @@ namespace DynamicWindows
             foreach (XmlElement element in xml.GetElementsByTagName("Config"))
             {
                 string id = element.GetAttribute("id");
-                string cleanId = StripPrefix(id, prefix);
+                string? cleanId = StripPrefix(id, prefix);
                 if (cleanId == null) continue;
 
                 switch (cleanId)
@@ -121,16 +130,33 @@ namespace DynamicWindows
                     case "disableSelfInjuries":
                         bool.TryParse(element.GetAttribute("selfenabled"), out plugin.bDisableSelfInjuries);
                         break;
+                    case "uiScale":
+                        if (float.TryParse(element.GetAttribute("value"),
+                            System.Globalization.NumberStyles.Float,
+                            System.Globalization.CultureInfo.InvariantCulture, out float scale))
+                            plugin.Scale = Math.Max(1.0f, Math.Min(1.5f, scale));
+                        break;
+                    case "fontFamily":
+                        {
+                            string fam = element.GetAttribute("name");
+                            if (!string.IsNullOrWhiteSpace(fam)) plugin.FontFamilyName = fam;
+                            string st = element.GetAttribute("style");
+                            if (!string.IsNullOrWhiteSpace(st) &&
+                                Enum.TryParse(st, out FontStyle fs))
+                                plugin.FontStyleChoice = fs;
+                        }
+                        break;
+                    case "linkColor":
+                        plugin.linkColor = ColorTranslator.FromHtml(element.GetAttribute("color"));
+                        break;
+                    case "timerColor":
+                        plugin.timerBarColor = ColorTranslator.FromHtml(element.GetAttribute("color"));
+                        break;
                 }
             }
         }
 
-        /// <summary>
-        /// Returns the part of <paramref name="id"/> after <paramref name="prefix"/>,
-        /// or null if it doesn't match.
-        /// For the global prefix (empty string), only matches ids with no dot at all.
-        /// </summary>
-        private static string StripPrefix(string id, string prefix)
+        private static string? StripPrefix(string id, string prefix)
         {
             if (prefix == "")
             {
@@ -147,13 +173,13 @@ namespace DynamicWindows
         public void Save()
         {
             string filePath = Path.Combine(configPath, "DynamicWindows.xml");
-            XmlDocument xml = new XmlDocument();
+            var xml = new XmlDocument();
             XmlElement root;
 
             if (File.Exists(filePath))
             {
                 xml.Load(filePath);
-                root = xml.DocumentElement;
+                root = xml.DocumentElement!;
             }
             else
             {
@@ -167,7 +193,7 @@ namespace DynamicWindows
             RemoveByPrefix(root, prefix);
 
             // Collect current window positions
-            foreach (SkinnedMDIChild window in plugin.forms)
+            foreach (DwForm window in plugin.forms)
                 plugin.positionList[window.Name] = window.Location;
 
             // Save per-character overrides — only values that differ from defaults
@@ -183,6 +209,22 @@ namespace DynamicWindows
                 AddConfig(xml, root, prefix, "disableOtherInjuries", "otherenabled", plugin.bDisableOtherInjuries.ToString());
             if (plugin.bDisableSelfInjuries != DefaultDisableSelf)
                 AddConfig(xml, root, prefix, "disableSelfInjuries", "selfenabled", plugin.bDisableSelfInjuries.ToString());
+            if (Math.Abs(plugin.Scale - DefaultScale) > 0.001f)
+                AddConfig(xml, root, prefix, "uiScale", "value",
+                    plugin.Scale.ToString("F2", System.Globalization.CultureInfo.InvariantCulture));
+            if (!string.Equals(plugin.FontFamilyName, DefaultFontFamily, StringComparison.Ordinal)
+                || plugin.FontStyleChoice != DefaultFontStyle)
+            {
+                XmlElement cfg = xml.CreateElement("Config");
+                cfg.SetAttribute("id", prefix + "fontFamily");
+                cfg.SetAttribute("name", plugin.FontFamilyName);
+                cfg.SetAttribute("style", plugin.FontStyleChoice.ToString());
+                root.AppendChild(cfg);
+            }
+            if (plugin.linkColor != DefaultLinkColor)
+                AddConfig(xml, root, prefix, "linkColor", "color", ColorTranslator.ToHtml(plugin.linkColor));
+            if (plugin.timerBarColor != DefaultTimerColor)
+                AddConfig(xml, root, prefix, "timerColor", "color", ColorTranslator.ToHtml(plugin.timerBarColor));
 
             // Ignore list
             foreach (string id in plugin.ignorelist)
@@ -237,8 +279,7 @@ namespace DynamicWindows
             string cleanId = fullId.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)
                 ? fullId.Substring(prefix.Length)
                 : fullId;
-            return plugin.ignorelist.Cast<string>()
-                          .Any(x => x.Equals(cleanId, StringComparison.OrdinalIgnoreCase));
+            return plugin.ignorelist.Any(x => x.Equals(cleanId, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

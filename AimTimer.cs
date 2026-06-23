@@ -1,4 +1,4 @@
-﻿using GeniePlugin.Interfaces;
+using GeniePlugin.Interfaces;
 using System;
 using System.Drawing;
 using System.Windows.Forms;
@@ -13,7 +13,7 @@ namespace DynamicWindows
 
         public AimTimerMode Mode { get; set; } = AimTimerMode.CloseOnExpire;
 
-        private System.Windows.Forms.Timer _tick;
+        private System.Windows.Forms.Timer? _tick;
         private long _expireEpoch;
         private long _startEpoch;
 
@@ -53,12 +53,7 @@ namespace DynamicWindows
                 {
                     ShowWindow();
                 }
-                else
-                {
-                    var existing = _plugin.FindWindowByName("AimTimerDialog");
-                    try { existing.Activate(); }
-                    catch { existing.BringToFront(); }
-                }
+                // If the window already exists just let it sit — no focus steal
 
                 StartTick();
 
@@ -76,58 +71,48 @@ namespace DynamicWindows
         private void ShowWindow()
         {
             var existing = _plugin.FindWindowByName("AimTimerDialog");
-            if (existing != null)
-            {
-                existing.BringToFront();
-                existing.Select();
-                return;
-            }
+            if (existing != null) return;  // already visible, don't re-raise or steal focus
 
-            var win = _plugin.CreateSkinnedWindow("AimTimerDialog", "Aim Timer", 200, 58);
-            win.formBody.BackColor = _plugin.formback;
-            win.formBody.Visible = false;
+            // Bar height scales with the plugin scale factor; window height wraps it exactly.
+            int barH = _plugin.S(18);
+            int winW = _plugin.S(180);
+            int winH = barH + 4;  // 2px padding top + 2px bottom, no dead space
+
+            var win = _plugin.CreateWindow("AimTimerDialog", "Aim Timer", winW, winH);
+            win.FormBody.BackColor = _plugin.formback;
+            win.FormBody.Visible = false;
 
             var timerBar = new TimerBarPanel
             {
                 Name = "bar",
-                Left = 5,
-                Top = 5,
-                Width = 180,
-                Height = 26,
+                Dock = DockStyle.Fill,   // fills formBody exactly — no gap
                 BackColor = _plugin.formback,
                 ForeColor = _plugin.formfore,
+                FillColor = _plugin.timerBarColor,
             };
 
-            win.formBody.Controls.Add(timerBar);
-            win.formBody.Visible = true;
+            win.FormBody.Controls.Add(timerBar);
+            win.FormBody.Visible = true;
 
-            // When the window is closed, just stop the tick — do NOT call UpdateDisplay
+            // When the window is closed, stop the tick and save its position
             win.FormClosed += (s, e) =>
             {
-                // Capture final position before the save fires
                 _plugin.positionList["AimTimerDialog"] = win.Location;
                 _tick?.Stop();
             };
 
             win.TopMost = false;
-            win.ShowForm();
+            win.NoActivate = true;   // never steal focus from Genie's input bar on open/reopen
+            win.ShowNoActivate();
 
-            // Clear any bad saved position so it centers on first use
+            // Default to centered over Genie's window on first use
             if (!_plugin.positionList.ContainsKey("AimTimerDialog"))
-                win.Location = new Point(
-                    (_plugin.pForm.ClientSize.Width - win.Width) / 2,
-                    (_plugin.pForm.ClientSize.Height - win.Height) / 2);
-
-            // MDI children need Activate() not BringToFront/Select
-            var t = new System.Windows.Forms.Timer { Interval = 10 };
-            t.Tick += (ts, te) =>
             {
-                t.Stop();
-                t.Dispose();
-                try { win.Activate(); }
-                catch { win.BringToFront(); }
-            };
-            t.Start();
+                var owner = _plugin.pForm;
+                win.Location = new Point(
+                    owner.Left + (owner.Width - win.Width) / 2,
+                    owner.Top + (owner.Height - win.Height) / 2);
+            }
         }
 
         private void CloseWindow()
@@ -151,11 +136,10 @@ namespace DynamicWindows
         private void StopTick()
         {
             _tick?.Stop();
-            // Update display to show zero — only if window is still alive
             UpdateDisplay(0, 0.0);
         }
 
-        private void OnTick(object sender, EventArgs e)
+        private void OnTick(object? sender, EventArgs e)
         {
             long now = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
             long remaining = _expireEpoch - now;
@@ -172,21 +156,19 @@ namespace DynamicWindows
             var win = _plugin.FindWindowByName("AimTimerDialog");
             if (win == null || win.IsDisposed) return;
 
-            Action update = () =>
+            void update()
             {
-                if (win.formBody.Controls["bar"] is TimerBarPanel bar)
+                if (win.FormBody.Controls["bar"] is TimerBarPanel bar)
                 {
                     bar.Fraction = pct;
                     bar.CountText = secondsLeft.ToString();
                     bar.Invalidate();
                 }
+                // No BringToFront here — the aim timer must not steal focus from
+                // Genie's input bar while the player is trying to type commands.
+            }
 
-                // Re-raise on every update so it stays on top within the MDI container
-                win.BringToFront();
-                win.Focus();
-            };
-
-            if (win.InvokeRequired) win.Invoke(update);
+            if (win.InvokeRequired) win.Invoke((Action)update);
             else update();
         }
 
@@ -198,20 +180,22 @@ namespace DynamicWindows
             _tick?.Dispose();
             _tick = null;
             _plugin.CloseWindowIfOpen("AimTimerDialog");
+            GC.SuppressFinalize(this);
         }
     }
 
-    /// <summary>Custom panel that owner-draws a progress bar with a centered countdown number.</summary>
     internal class TimerBarPanel : Panel
     {
         public double Fraction { get; set; } = 0.0;
         public string CountText { get; set; } = "0";
+        public Color FillColor { get; set; } = Color.RoyalBlue;
 
         public TimerBarPanel()
         {
-            SetStyle(ControlStyles.OptimizedDoubleBuffer |
-                     ControlStyles.AllPaintingInWmPaint |
-                     ControlStyles.UserPaint, true);
+            SetStyle(
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.UserPaint, true);
         }
 
         protected override void OnPaint(PaintEventArgs e)
@@ -223,14 +207,14 @@ namespace DynamicWindows
 
             int fillW = (int)(r.Width * Fraction);
             if (fillW > 0)
-                g.FillRectangle(Brushes.RoyalBlue, 0, 0, fillW, r.Height);
+                using (var fillBrush = new SolidBrush(FillColor))
+                    g.FillRectangle(fillBrush, 0, 0, fillW, r.Height);
 
-            Font font = new Font("Arial", 11, FontStyle.Bold);
+            using var font = new Font("Arial", 10, FontStyle.Bold);
             SizeF textSize = g.MeasureString(CountText, font);
             float tx = (r.Width - textSize.Width) / 2f;
             float ty = (r.Height - textSize.Height) / 2f;
             g.DrawString(CountText, font, new SolidBrush(ForeColor), tx, ty);
-            font.Dispose();
         }
     }
 }

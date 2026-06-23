@@ -1,4 +1,5 @@
-﻿using System;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
 using System.Linq;
@@ -6,432 +7,622 @@ using System.Windows.Forms;
 
 namespace DynamicWindows
 {
-  public class FormOptionWindow : Form
-  {
-    private IContainer components;
-    private CheckBox CheckBoxStowContainer;
-    private Button ButtonClose;
-    private CheckBox checkBoxDisablePlugin;
-    private TextBox textBox_Color;
-    private Button buttonForeground;
-    private Button buttonBackground;
-    private ListBox listbox_openwindows;
-    private ListBox listBox_ignores;
-    private Button button_ignore;
-    private Button button_clear;
-    private Button button_clearall;
-    private Label label1;
-    private Label label2;
-    private Button button_closewindow;
-    private CheckBox cbDisableOtherInjuries;
-    private CheckBox cbDisableSelfInjuries;
-    private readonly Plugin _plugin;
-	public IContainer Components { get => components; set => components = value; }
-	
-	public FormOptionWindow(Plugin PlugIn)
+    public class FormOptionWindow : Form
     {
-      this._plugin = PlugIn;
-      this.InitializeComponent();
-      foreach (Control control in this._plugin.forms)
-        this.listbox_openwindows.Items.Add((object) control.Name);
-      
-      foreach (string str in this._plugin.ignorelist)
-        this.listBox_ignores.Items.Add((object) str);
 
-      this.textBox_Color.ForeColor = this._plugin.formfore;
-      this.textBox_Color.BackColor = this._plugin.formback;
-      this.checkBoxDisablePlugin.Checked = !this._plugin.bPluginEnabled;
-      this.CheckBoxStowContainer.Checked = this._plugin.bStowContainer;
-      this.cbDisableOtherInjuries.Checked = this._plugin.bDisableOtherInjuries;
-      this.cbDisableSelfInjuries.Checked = this._plugin.bDisableSelfInjuries;
-    }
+        private CheckBox CheckBoxStowContainer = null!;
+        private Button ButtonClose = null!;
+        private Button ButtonCancel = null!;
+        private Button buttonHelp = null!;
+        private CheckBox checkBoxDisablePlugin = null!;
+        private TextBox textBox_Color = null!;
+        private Button buttonForeground = null!;
+        private Button buttonBackground = null!;
+        private Button buttonFont = null!;
+        private Button buttonLinkColor = null!;
+        private Button buttonTimerColor = null!;
+        private ListBox listbox_openwindows = null!;
+        private ListBox listBox_ignores = null!;
+        private Button button_ignore = null!;
+        private Button button_clear = null!;
+        private Button button_clearall = null!;
+        private Label label1 = null!;
+        private Label label2 = null!;
+        private Button button_closewindow = null!;
+        private CheckBox cbDisableOtherInjuries = null!;
+        private CheckBox cbDisableSelfInjuries = null!;
+        private TrackBar trackBarScale = null!;
+        private Label labelScaleValue = null!;
+        private Label labelScaleTitle = null!;
 
-    protected override void Dispose(bool disposing)
-    {
-      if (disposing && this.Components != null)
-        this.Components.Dispose();
-      base.Dispose(disposing);
-    }
+        private readonly Plugin _plugin;
 
-    private void InitializeComponent()
-    {
-            this.CheckBoxStowContainer = new System.Windows.Forms.CheckBox();
-            this.ButtonClose = new System.Windows.Forms.Button();
-            this.checkBoxDisablePlugin = new System.Windows.Forms.CheckBox();
-            this.textBox_Color = new System.Windows.Forms.TextBox();
-            this.buttonForeground = new System.Windows.Forms.Button();
-            this.buttonBackground = new System.Windows.Forms.Button();
-            this.listbox_openwindows = new System.Windows.Forms.ListBox();
-            this.listBox_ignores = new System.Windows.Forms.ListBox();
-            this.button_ignore = new System.Windows.Forms.Button();
-            this.button_clear = new System.Windows.Forms.Button();
-            this.button_clearall = new System.Windows.Forms.Button();
-            this.label1 = new System.Windows.Forms.Label();
-            this.label2 = new System.Windows.Forms.Label();
-            this.button_closewindow = new System.Windows.Forms.Button();
-            this.cbDisableOtherInjuries = new System.Windows.Forms.CheckBox();
-            this.cbDisableSelfInjuries = new System.Windows.Forms.CheckBox();
-            this.SuspendLayout();
-            // 
+        // Snapshot of every setting this window can change, captured when it opens, so Cancel
+        // can revert without writing the XML. OK is the only path that persists.
+        private readonly Color _origFore, _origBack, _origLink, _origTimer;
+        private readonly string _origFontFamily;
+        private readonly FontStyle _origFontStyle;
+        private readonly float _origScale;
+        private readonly bool _origStow, _origEnabled, _origDisableOther, _origDisableSelf;
+        private readonly List<string> _origIgnore;
+
+        public FormOptionWindow(Plugin plugin)
+        {
+            _plugin = plugin;
+
+            _origFore = plugin.formfore;
+            _origBack = plugin.formback;
+            _origLink = plugin.linkColor;
+            _origTimer = plugin.timerBarColor;
+            _origFontFamily = plugin.FontFamilyName;
+            _origFontStyle = plugin.FontStyleChoice;
+            _origScale = plugin.Scale;
+            _origStow = plugin.bStowContainer;
+            _origEnabled = plugin.bPluginEnabled;
+            _origDisableOther = plugin.bDisableOtherInjuries;
+            _origDisableSelf = plugin.bDisableSelfInjuries;
+            _origIgnore = new List<string>(plugin.ignorelist);
+
+            InitializeComponent();
+
+            foreach (DwForm form in _plugin.forms)
+                listbox_openwindows.Items.Add(form.Name);
+
+            foreach (string str in _plugin.ignorelist)
+                listBox_ignores.Items.Add(str);
+
+            textBox_Color.ForeColor = _plugin.formfore;
+            textBox_Color.BackColor = _plugin.formback;
+            ApplyFontPreview();
+            buttonLinkColor.ForeColor = _plugin.linkColor;
+            buttonTimerColor.ForeColor = _plugin.timerBarColor;
+            checkBoxDisablePlugin.Checked = !_plugin.bPluginEnabled;
+            CheckBoxStowContainer.Checked = _plugin.bStowContainer;
+            cbDisableOtherInjuries.Checked = _plugin.bDisableOtherInjuries;
+            cbDisableSelfInjuries.Checked = _plugin.bDisableSelfInjuries;
+
+            // TrackBar range: 100–150 representing 1.00–1.50 in steps of 5 (i.e. 0.05)
+            // Beyond 1.5x row spacing and control heights diverge visibly in tightly-packed
+            // server dialogs like TDP Planning — 1.25x is the sweet spot for most displays.
+            trackBarScale.Minimum = 100;
+            trackBarScale.Maximum = 150;
+            trackBarScale.TickFrequency = 5;
+            trackBarScale.SmallChange = 5;
+            trackBarScale.LargeChange = 10;
+            trackBarScale.Value = (int)Math.Round(_plugin.Scale * 100);
+            labelScaleValue.Text = _plugin.Scale.ToString("F2") + "x";
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            base.Dispose(disposing);
+        }
+
+        private void InitializeComponent()
+        {
+            CheckBoxStowContainer = new CheckBox();
+            ButtonClose = new Button();
+            ButtonCancel = new Button();
+            buttonHelp = new Button();
+            checkBoxDisablePlugin = new CheckBox();
+            textBox_Color = new TextBox();
+            buttonForeground = new Button();
+            buttonBackground = new Button();
+            buttonFont = new Button();
+            buttonLinkColor = new Button();
+            buttonTimerColor = new Button();
+            listbox_openwindows = new ListBox();
+            listBox_ignores = new ListBox();
+            button_ignore = new Button();
+            button_clear = new Button();
+            button_clearall = new Button();
+            label1 = new Label();
+            label2 = new Label();
+            button_closewindow = new Button();
+            cbDisableOtherInjuries = new CheckBox();
+            cbDisableSelfInjuries = new CheckBox();
+            trackBarScale = new TrackBar();
+            labelScaleValue = new Label();
+            labelScaleTitle = new Label();
+            SuspendLayout();
+
             // CheckBoxStowContainer
-            // 
-            this.CheckBoxStowContainer.AutoSize = true;
-            this.CheckBoxStowContainer.Location = new System.Drawing.Point(13, 13);
-            this.CheckBoxStowContainer.Name = "CheckBoxStowContainer";
-            this.CheckBoxStowContainer.Size = new System.Drawing.Size(140, 17);
-            this.CheckBoxStowContainer.TabIndex = 0;
-            this.CheckBoxStowContainer.Text = "Stow Container Window";
-            this.CheckBoxStowContainer.UseVisualStyleBackColor = true;
-            this.CheckBoxStowContainer.CheckedChanged += new System.EventHandler(this.CheckBoxStowContainer_CheckedChanged);
-            // 
+            CheckBoxStowContainer.AutoSize = true;
+            CheckBoxStowContainer.Location = new Point(13, 13);
+            CheckBoxStowContainer.Name = "CheckBoxStowContainer";
+            CheckBoxStowContainer.Size = new Size(140, 17);
+            CheckBoxStowContainer.Text = "Stow Container Window";
+            CheckBoxStowContainer.UseVisualStyleBackColor = true;
+            CheckBoxStowContainer.CheckedChanged += CheckBoxStowContainer_CheckedChanged;
+
             // ButtonClose
-            // 
-            this.ButtonClose.DialogResult = System.Windows.Forms.DialogResult.Cancel;
-            this.ButtonClose.Location = new System.Drawing.Point(12, 310);
-            this.ButtonClose.Name = "ButtonClose";
-            this.ButtonClose.Size = new System.Drawing.Size(75, 23);
-            this.ButtonClose.TabIndex = 1;
-            this.ButtonClose.Text = "OK";
-            this.ButtonClose.UseVisualStyleBackColor = true;
-            this.ButtonClose.Click += new System.EventHandler(this.ButtonClose_Click);
-            // 
+            ButtonClose.DialogResult = DialogResult.Cancel;
+            ButtonClose.Location = new Point(12, 310);
+            ButtonClose.Name = "ButtonClose";
+            ButtonClose.Size = new Size(75, 23);
+            ButtonClose.Text = "OK";
+            ButtonClose.UseVisualStyleBackColor = true;
+            ButtonClose.Click += ButtonClose_Click;
+
+            // ButtonCancel
+            ButtonCancel.Location = new Point(93, 310);
+            ButtonCancel.Name = "ButtonCancel";
+            ButtonCancel.Size = new Size(75, 23);
+            ButtonCancel.Text = "Cancel";
+            ButtonCancel.UseVisualStyleBackColor = true;
+            ButtonCancel.Click += ButtonCancel_Click;
+
             // checkBoxDisablePlugin
-            // 
-            this.checkBoxDisablePlugin.AutoSize = true;
-            this.checkBoxDisablePlugin.Location = new System.Drawing.Point(272, 316);
-            this.checkBoxDisablePlugin.Name = "checkBoxDisablePlugin";
-            this.checkBoxDisablePlugin.Size = new System.Drawing.Size(123, 17);
-            this.checkBoxDisablePlugin.TabIndex = 2;
-            this.checkBoxDisablePlugin.Text = "Disable Entire Plugin";
-            this.checkBoxDisablePlugin.UseVisualStyleBackColor = true;
-            this.checkBoxDisablePlugin.CheckedChanged += new System.EventHandler(this.CheckBoxDisablePlugin_CheckedChanged);
-            // 
+            checkBoxDisablePlugin.AutoSize = true;
+            checkBoxDisablePlugin.Location = new Point(272, 316);
+            checkBoxDisablePlugin.Name = "checkBoxDisablePlugin";
+            checkBoxDisablePlugin.Size = new Size(123, 17);
+            checkBoxDisablePlugin.Text = "Disable Entire Plugin";
+            checkBoxDisablePlugin.UseVisualStyleBackColor = true;
+            checkBoxDisablePlugin.CheckedChanged += CheckBoxDisablePlugin_CheckedChanged;
+
             // textBox_Color
-            // 
-            this.textBox_Color.Location = new System.Drawing.Point(194, 42);
-            this.textBox_Color.Name = "textBox_Color";
-            this.textBox_Color.Size = new System.Drawing.Size(100, 20);
-            this.textBox_Color.TabIndex = 3;
-            this.textBox_Color.Text = "Example";
-            this.textBox_Color.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
-            // 
+            textBox_Color.Location = new Point(194, 42);
+            textBox_Color.Name = "textBox_Color";
+            textBox_Color.Size = new Size(100, 20);
+            textBox_Color.Text = "Example";
+            textBox_Color.TextAlign = HorizontalAlignment.Center;
+
             // buttonForeground
-            // 
-            this.buttonForeground.Location = new System.Drawing.Point(168, 13);
-            this.buttonForeground.Name = "buttonForeground";
-            this.buttonForeground.Size = new System.Drawing.Size(75, 23);
-            this.buttonForeground.TabIndex = 4;
-            this.buttonForeground.Text = "Foreground";
-            this.buttonForeground.UseVisualStyleBackColor = true;
-            this.buttonForeground.Click += new System.EventHandler(this.ButtonForeground_Click);
-            // 
+            buttonForeground.Location = new Point(168, 13);
+            buttonForeground.Name = "buttonForeground";
+            buttonForeground.Size = new Size(75, 23);
+            buttonForeground.Text = "Foreground";
+            buttonForeground.UseVisualStyleBackColor = true;
+            buttonForeground.Click += ButtonForeground_Click;
+
             // buttonBackground
-            // 
-            this.buttonBackground.Location = new System.Drawing.Point(249, 13);
-            this.buttonBackground.Name = "buttonBackground";
-            this.buttonBackground.Size = new System.Drawing.Size(75, 23);
-            this.buttonBackground.TabIndex = 5;
-            this.buttonBackground.Text = "Background";
-            this.buttonBackground.UseVisualStyleBackColor = true;
-            this.buttonBackground.Click += new System.EventHandler(this.ButtonBackground_Click);
-            // 
+            buttonBackground.Location = new Point(249, 13);
+            buttonBackground.Name = "buttonBackground";
+            buttonBackground.Size = new Size(75, 23);
+            buttonBackground.Text = "Background";
+            buttonBackground.UseVisualStyleBackColor = true;
+            buttonBackground.Click += ButtonBackground_Click;
+
+            // buttonFont
+            buttonFont.Location = new Point(330, 13);
+            buttonFont.Name = "buttonFont";
+            buttonFont.Size = new Size(75, 23);
+            buttonFont.Text = "Font…";
+            buttonFont.UseVisualStyleBackColor = true;
+            buttonFont.Click += ButtonFont_Click;
+
+            // buttonLinkColor
+            buttonLinkColor.Location = new Point(330, 42);
+            buttonLinkColor.Name = "buttonLinkColor";
+            buttonLinkColor.Size = new Size(75, 23);
+            buttonLinkColor.Text = "Link Color";
+            buttonLinkColor.UseVisualStyleBackColor = true;
+            buttonLinkColor.Click += ButtonLinkColor_Click;
+
+            // buttonTimerColor
+            buttonTimerColor.Location = new Point(330, 71);
+            buttonTimerColor.Name = "buttonTimerColor";
+            buttonTimerColor.Size = new Size(75, 23);
+            buttonTimerColor.Text = "Timer Color";
+            buttonTimerColor.UseVisualStyleBackColor = true;
+            buttonTimerColor.Click += ButtonTimerColor_Click;
+
             // listbox_openwindows
-            // 
-            this.listbox_openwindows.FormattingEnabled = true;
-            this.listbox_openwindows.Location = new System.Drawing.Point(13, 107);
-            this.listbox_openwindows.Name = "listbox_openwindows";
-            this.listbox_openwindows.Size = new System.Drawing.Size(158, 147);
-            this.listbox_openwindows.TabIndex = 6;
-            // 
+            listbox_openwindows.FormattingEnabled = true;
+            listbox_openwindows.Location = new Point(13, 107);
+            listbox_openwindows.Name = "listbox_openwindows";
+            listbox_openwindows.Size = new Size(158, 147);
+
             // listBox_ignores
-            // 
-            this.listBox_ignores.FormattingEnabled = true;
-            this.listBox_ignores.Location = new System.Drawing.Point(238, 107);
-            this.listBox_ignores.Name = "listBox_ignores";
-            this.listBox_ignores.Size = new System.Drawing.Size(157, 147);
-            this.listBox_ignores.TabIndex = 7;
-            // 
+            listBox_ignores.FormattingEnabled = true;
+            listBox_ignores.Location = new Point(238, 107);
+            listBox_ignores.Name = "listBox_ignores";
+            listBox_ignores.Size = new Size(157, 147);
+
             // button_ignore
-            // 
-            this.button_ignore.Location = new System.Drawing.Point(13, 260);
-            this.button_ignore.Name = "button_ignore";
-            this.button_ignore.Size = new System.Drawing.Size(54, 23);
-            this.button_ignore.TabIndex = 8;
-            this.button_ignore.Text = "Ignore";
-            this.button_ignore.UseVisualStyleBackColor = true;
-            this.button_ignore.Click += new System.EventHandler(this.Button_ignore_Click);
-            // 
+            button_ignore.Location = new Point(13, 260);
+            button_ignore.Name = "button_ignore";
+            button_ignore.Size = new Size(54, 23);
+            button_ignore.Text = "Ignore";
+            button_ignore.UseVisualStyleBackColor = true;
+            button_ignore.Click += Button_ignore_Click;
+
             // button_clear
-            // 
-            this.button_clear.Location = new System.Drawing.Point(340, 260);
-            this.button_clear.Name = "button_clear";
-            this.button_clear.Size = new System.Drawing.Size(55, 23);
-            this.button_clear.TabIndex = 9;
-            this.button_clear.Text = "Clear";
-            this.button_clear.UseVisualStyleBackColor = true;
-            this.button_clear.Click += new System.EventHandler(this.Button_clear_Click);
-            // 
+            button_clear.Location = new Point(340, 260);
+            button_clear.Name = "button_clear";
+            button_clear.Size = new Size(55, 23);
+            button_clear.Text = "Clear";
+            button_clear.UseVisualStyleBackColor = true;
+            button_clear.Click += Button_clear_Click;
+
             // button_clearall
-            // 
-            this.button_clearall.Location = new System.Drawing.Point(249, 260);
-            this.button_clearall.Name = "button_clearall";
-            this.button_clearall.Size = new System.Drawing.Size(75, 23);
-            this.button_clearall.TabIndex = 10;
-            this.button_clearall.Text = "Clear All";
-            this.button_clearall.UseVisualStyleBackColor = true;
-            this.button_clearall.Click += new System.EventHandler(this.Button_clearall_Click);
-            // 
+            button_clearall.Location = new Point(249, 260);
+            button_clearall.Name = "button_clearall";
+            button_clearall.Size = new Size(75, 23);
+            button_clearall.Text = "Clear All";
+            button_clearall.UseVisualStyleBackColor = true;
+            button_clearall.Click += Button_clearall_Click;
+
             // label1
-            // 
-            this.label1.AutoSize = true;
-            this.label1.Location = new System.Drawing.Point(238, 88);
-            this.label1.Name = "label1";
-            this.label1.Size = new System.Drawing.Size(56, 13);
-            this.label1.TabIndex = 11;
-            this.label1.Text = "Ignore List";
-            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(238, 88);
+            label1.Name = "label1";
+            label1.Text = "Ignore List";
+
             // label2
-            // 
-            this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(13, 87);
-            this.label2.Name = "label2";
-            this.label2.Size = new System.Drawing.Size(80, 13);
-            this.label2.TabIndex = 12;
-            this.label2.Text = "Open Windows";
-            // 
+            label2.AutoSize = true;
+            label2.Location = new Point(13, 88);
+            label2.Name = "label2";
+            label2.Text = "Open Windows";
+
             // button_closewindow
-            // 
-            this.button_closewindow.Location = new System.Drawing.Point(78, 260);
-            this.button_closewindow.Name = "button_closewindow";
-            this.button_closewindow.Size = new System.Drawing.Size(75, 23);
-            this.button_closewindow.TabIndex = 13;
-            this.button_closewindow.Text = "Close";
-            this.button_closewindow.UseVisualStyleBackColor = true;
-            this.button_closewindow.Click += new System.EventHandler(this.Button_closewindow_Click);
-            // 
+            button_closewindow.Location = new Point(75, 260);
+            button_closewindow.Name = "button_closewindow";
+            button_closewindow.Size = new Size(75, 23);
+            button_closewindow.Text = "Close Win";
+            button_closewindow.UseVisualStyleBackColor = true;
+            button_closewindow.Click += Button_closewindow_Click;
+
             // cbDisableOtherInjuries
-            // 
-            this.cbDisableOtherInjuries.AutoSize = true;
-            this.cbDisableOtherInjuries.Checked = true;
-            this.cbDisableOtherInjuries.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbDisableOtherInjuries.Location = new System.Drawing.Point(12, 36);
-            this.cbDisableOtherInjuries.Name = "cbDisableOtherInjuries";
-            this.cbDisableOtherInjuries.Size = new System.Drawing.Size(139, 17);
-            this.cbDisableOtherInjuries.TabIndex = 14;
-            this.cbDisableOtherInjuries.Text = "Disable Empath Healing";
-            this.cbDisableOtherInjuries.UseVisualStyleBackColor = true;
-            this.cbDisableOtherInjuries.CheckedChanged += new System.EventHandler(this.CbDisableOtherInjuries_CheckedChanged);
-            // 
+            cbDisableOtherInjuries.AutoSize = true;
+            cbDisableOtherInjuries.Location = new Point(13, 45);
+            cbDisableOtherInjuries.Name = "cbDisableOtherInjuries";
+            cbDisableOtherInjuries.Text = "Disable Other Injuries Windows";
+            cbDisableOtherInjuries.UseVisualStyleBackColor = true;
+            cbDisableOtherInjuries.CheckedChanged += CbDisableOtherInjuries_CheckedChanged;
+
             // cbDisableSelfInjuries
-            // 
-            this.cbDisableSelfInjuries.AutoSize = true;
-            this.cbDisableSelfInjuries.Checked = true;
-            this.cbDisableSelfInjuries.CheckState = System.Windows.Forms.CheckState.Checked;
-            this.cbDisableSelfInjuries.Location = new System.Drawing.Point(12, 59);
-            this.cbDisableSelfInjuries.Name = "cbDisableSelfInjuries";
-            this.cbDisableSelfInjuries.Size = new System.Drawing.Size(118, 17);
-            this.cbDisableSelfInjuries.TabIndex = 15;
-            this.cbDisableSelfInjuries.Text = "Disable Self Injuries";
-            this.cbDisableSelfInjuries.UseVisualStyleBackColor = true;
-            this.cbDisableSelfInjuries.CheckedChanged += new System.EventHandler(this.CbDisableSelfInjuries_CheckedChanged);
-            // 
-            // FormOptionWindow
-            // 
-            this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.CancelButton = this.ButtonClose;
-            this.ClientSize = new System.Drawing.Size(407, 345);
-            this.ControlBox = false;
-            this.Controls.Add(this.cbDisableSelfInjuries);
-            this.Controls.Add(this.cbDisableOtherInjuries);
-            this.Controls.Add(this.button_closewindow);
-            this.Controls.Add(this.label2);
-            this.Controls.Add(this.label1);
-            this.Controls.Add(this.button_clearall);
-            this.Controls.Add(this.button_clear);
-            this.Controls.Add(this.button_ignore);
-            this.Controls.Add(this.listBox_ignores);
-            this.Controls.Add(this.listbox_openwindows);
-            this.Controls.Add(this.buttonBackground);
-            this.Controls.Add(this.buttonForeground);
-            this.Controls.Add(this.textBox_Color);
-            this.Controls.Add(this.checkBoxDisablePlugin);
-            this.Controls.Add(this.ButtonClose);
-            this.Controls.Add(this.CheckBoxStowContainer);
-            this.Name = "FormOptionWindow";
-            this.Text = "Dynamic Window Options";
-            this.ResumeLayout(false);
-            this.PerformLayout();
+            cbDisableSelfInjuries.AutoSize = true;
+            cbDisableSelfInjuries.Location = new Point(13, 65);
+            cbDisableSelfInjuries.Name = "cbDisableSelfInjuries";
+            cbDisableSelfInjuries.Text = "Disable Self Injuries Window";
+            cbDisableSelfInjuries.UseVisualStyleBackColor = true;
+            cbDisableSelfInjuries.CheckedChanged += CbDisableSelfInjuries_CheckedChanged;
 
-    }
+            // Form
+            AutoScaleDimensions = new SizeF(6f, 13f);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(410, 400);
+            ControlBox = false;
+            Name = "FormOptionWindow";
+            Text = "Dynamic Window Options";
 
-    private void CheckBoxStowContainer_CheckedChanged(object sender, EventArgs e)
-    {
-      if (this.CheckBoxStowContainer.Checked)
-        this._plugin.bStowContainer = true;
-      else
-        this._plugin.bStowContainer = false;
-    }
+            // labelScaleTitle
+            labelScaleTitle.AutoSize = true;
+            labelScaleTitle.Location = new Point(13, 290);
+            labelScaleTitle.Name = "labelScaleTitle";
+            labelScaleTitle.Text = "UI Scale — 1.00x to 1.50x  (1.25x recommended):";
 
-    private void CheckBoxDisablePlugin_CheckedChanged(object sender, EventArgs e)
-    {
-        if (this.checkBoxDisablePlugin.Checked)
-        {
-            this._plugin.bPluginEnabled = false;
-            this._plugin.documents.Clear();
+            // trackBarScale
+            trackBarScale.Location = new Point(13, 308);
+            trackBarScale.Name = "trackBarScale";
+            trackBarScale.Size = new Size(330, 30);
+            trackBarScale.ValueChanged += TrackBarScale_ValueChanged;
 
-            foreach (Form form in this._plugin.forms.Cast<Form>().ToList())
-                form.Close();
+            // labelScaleValue
+            labelScaleValue.AutoSize = true;
+            labelScaleValue.Location = new Point(350, 313);
+            labelScaleValue.Name = "labelScaleValue";
+            labelScaleValue.Text = "1.00x";
 
-            this._plugin.forms.Clear();
+            // ButtonClose (moved down)
+            ButtonClose.Location = new Point(12, 365);
+
+            // ButtonCancel (moved down, beside OK)
+            ButtonCancel.Location = new Point(93, 365);
+
+            // buttonHelp (bottom row, after Cancel)
+            buttonHelp.Location = new Point(174, 365);
+            buttonHelp.Name = "buttonHelp";
+            buttonHelp.Size = new Size(75, 23);
+            buttonHelp.Text = "Help";
+            buttonHelp.UseVisualStyleBackColor = true;
+            buttonHelp.Click += ButtonHelp_Click;
+
+            // checkBoxDisablePlugin (moved down)
+            checkBoxDisablePlugin.Location = new Point(272, 371);
+
+            Controls.Add(cbDisableSelfInjuries);
+            Controls.Add(cbDisableOtherInjuries);
+            Controls.Add(button_closewindow);
+            Controls.Add(label2);
+            Controls.Add(label1);
+            Controls.Add(button_clearall);
+            Controls.Add(button_clear);
+            Controls.Add(button_ignore);
+            Controls.Add(listBox_ignores);
+            Controls.Add(listbox_openwindows);
+            Controls.Add(buttonBackground);
+            Controls.Add(buttonForeground);
+            Controls.Add(buttonFont);
+            Controls.Add(buttonLinkColor);
+            Controls.Add(buttonTimerColor);
+            Controls.Add(textBox_Color);
+            Controls.Add(checkBoxDisablePlugin);
+            Controls.Add(ButtonClose);
+            Controls.Add(ButtonCancel);
+            Controls.Add(buttonHelp);
+            Controls.Add(CheckBoxStowContainer);
+            Controls.Add(labelScaleTitle);
+            Controls.Add(trackBarScale);
+            Controls.Add(labelScaleValue);
+
+            ResumeLayout(false);
+            PerformLayout();
         }
-        else
+
+        // ── Event handlers ─────────────────────────────────────────────────────
+
+        private void CheckBoxStowContainer_CheckedChanged(object? sender, EventArgs e)
         {
-            this._plugin.bPluginEnabled = true;
+            _plugin.bStowContainer = CheckBoxStowContainer.Checked;
         }
-    }
 
-    private void ButtonForeground_Click(object sender, EventArgs e)
-    {
-            ColorDialog colorDialog = new ColorDialog
-            {
-                AllowFullOpen = true,
-                Color = this._plugin.formfore
-            };
-            if (colorDialog.ShowDialog() != DialogResult.Cancel)
-      {
-        this.textBox_Color.ForeColor = colorDialog.Color;
-        this._plugin.formfore = colorDialog.Color;
-      }
-      this.Update();
-    }
-
-    private void ButtonBackground_Click(object sender, EventArgs e)
-    {
-            ColorDialog colorDialog = new ColorDialog
-            {
-                AllowFullOpen = true,
-                Color = this._plugin.formback
-            };
-            if (colorDialog.ShowDialog() != DialogResult.Cancel)
-      {
-        this.textBox_Color.BackColor = colorDialog.Color;
-        this._plugin.formback = colorDialog.Color;
-      }
-      this.Update();
-    }
-
-    private void ButtonClose_Click(object sender, EventArgs e)
-    {
-        this._plugin.loadSave.Save();
-        this.Close();
-    }
-
-        private void Button_ignore_Click(object sender, EventArgs e)
+        private void CheckBoxDisablePlugin_CheckedChanged(object? sender, EventArgs e)
         {
-            if (listbox_openwindows.SelectedIndex == -1)
-                return;
-
-            string selectedName = listbox_openwindows.SelectedItem.ToString();
-            Form form1 = null;
-
-            foreach (Form form2 in this._plugin.forms)
+            if (checkBoxDisablePlugin.Checked)
             {
-                if (form2.Name == selectedName)
-                {
-                    form1 = form2;
-                    break;
-                }
+                _plugin.bPluginEnabled = false;
+                _plugin.documents.Clear();
+
+                foreach (DwForm form in _plugin.forms.ToList())
+                    form.Close();
+
+                _plugin.forms.Clear();
             }
+            else
+            {
+                _plugin.bPluginEnabled = true;
+            }
+        }
 
-            if (form1 == null)
-                return;
+        private void ButtonForeground_Click(object? sender, EventArgs e)
+        {
+            using var colorDialog = new ColorDialog
+            {
+                AllowFullOpen = true,
+                Color = _plugin.formfore
+            };
+            if (colorDialog.ShowDialog() != DialogResult.Cancel)
+            {
+                textBox_Color.ForeColor = colorDialog.Color;
+                _plugin.formfore = colorDialog.Color;
+            }
+            Update();
+        }
+
+        private void ButtonBackground_Click(object? sender, EventArgs e)
+        {
+            using var colorDialog = new ColorDialog
+            {
+                AllowFullOpen = true,
+                Color = _plugin.formback
+            };
+            if (colorDialog.ShowDialog() != DialogResult.Cancel)
+            {
+                textBox_Color.BackColor = colorDialog.Color;
+                _plugin.formback = colorDialog.Color;
+            }
+            Update();
+        }
+
+        private void ButtonFont_Click(object? sender, EventArgs e)
+        {
+            using var picker = new FontPickerDialog(_plugin.FontFamilyName, _plugin.FontStyleChoice)
+            {
+                Owner = this
+            };
+            if (picker.ShowDialog() == DialogResult.OK)
+            {
+                _plugin.FontFamilyName = picker.SelectedFamily;
+                _plugin.FontStyleChoice = picker.SelectedStyle;
+                ApplyFontPreview();
+            }
+        }
+
+        private void ApplyFontPreview()
+        {
+            float size = textBox_Color.Font.Size;
+            try { textBox_Color.Font = new Font(_plugin.FontFamilyName, size, _plugin.FontStyleChoice); }
+            catch
+            {
+                try { textBox_Color.Font = new Font(_plugin.FontFamilyName, size); } catch { /* keep current */ }
+            }
+        }
+
+        private void ButtonLinkColor_Click(object? sender, EventArgs e)
+        {
+            using var colorDialog = new ColorDialog
+            {
+                AllowFullOpen = true,
+                Color = _plugin.linkColor
+            };
+            if (colorDialog.ShowDialog() != DialogResult.Cancel)
+            {
+                _plugin.linkColor = colorDialog.Color;
+                buttonLinkColor.ForeColor = colorDialog.Color;
+            }
+        }
+
+        private void ButtonTimerColor_Click(object? sender, EventArgs e)
+        {
+            using var colorDialog = new ColorDialog
+            {
+                AllowFullOpen = true,
+                Color = _plugin.timerBarColor
+            };
+            if (colorDialog.ShowDialog() != DialogResult.Cancel)
+            {
+                _plugin.timerBarColor = colorDialog.Color;
+                buttonTimerColor.ForeColor = colorDialog.Color;
+            }
+        }
+
+        private void ButtonClose_Click(object? sender, EventArgs e)
+        {
+            CloseHelpWindow();
+            _plugin.loadSave.Save();
+            Close();
+        }
+
+        private void CloseHelpWindow()
+        {
+            const string id = "commandHelp";
+
+            foreach (var f in _plugin.forms.ToList())
+            {
+                if (!f.IsDisposed && f.Name == id)
+                    f.Close();
+            }
+        }
+
+        private void ButtonHelp_Click(object? sender, EventArgs e)
+        {
+            const string id = "commandHelp";
+
+            // Already open? Just surface it rather than stacking duplicates.
+            foreach (var f in _plugin.forms)
+                if (!f.IsDisposed && f.Name == id) { f.BringToFront(); f.Focus(); return; }
+
+            // Same themed, read-only (selectable/copyable) RichTextBox window the profile help
+            // uses. Monospaced so the dot-leader columns in HelpWindows.CommandHelp line up.
+            var win = _plugin.CreateWindow(id, "Window & Plugin Commands", _plugin.S(520), _plugin.S(440));
+            win.FormBody.Visible = true;
+            win.FormBody.AutoScroll = true;
+
+            var box = new RichTextBox
+            {
+                ReadOnly = true,
+                BorderStyle = BorderStyle.None,
+                Dock = DockStyle.Fill,
+                WordWrap = false,
+                BackColor = _plugin.formback,
+                ForeColor = _plugin.formfore,
+                Font = new Font(FontFamily.GenericMonospace, _plugin.InfoFont.Size, FontStyle.Regular),
+                Text = new HelpWindows().CommandHelp,
+            };
+
+            // Close button row along the bottom (the form's top-right X still works too).
+            var bottom = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Bottom,
+                FlowDirection = FlowDirection.RightToLeft,
+                Height = _plugin.S(40),
+                Padding = new Padding(_plugin.S(6)),
+                BackColor = _plugin.formback,
+            };
+            var closeButton = new Button { Text = "Close", AutoSize = true };
+            closeButton.Click += delegate { win.Close(); };
+            bottom.Controls.Add(closeButton);
+
+            win.FormBody.Controls.Add(box);      // Fill added first so the bottom row sits beneath it
+            win.FormBody.Controls.Add(bottom);
+            win.CancelButton = closeButton;      // Esc also closes
+            win.ShowForm();
+        }
+
+        private void ButtonCancel_Click(object? sender, EventArgs e)
+        {
+            // Revert every setting to its state when the window opened, then close WITHOUT
+            // saving — so nothing this session touched is persisted to the XML.
+            _plugin.formfore = _origFore;
+            _plugin.formback = _origBack;
+            _plugin.linkColor = _origLink;
+            _plugin.timerBarColor = _origTimer;
+            _plugin.FontFamilyName = _origFontFamily;
+            _plugin.FontStyleChoice = _origFontStyle;
+            _plugin.Scale = _origScale;
+            _plugin.bStowContainer = _origStow;
+            _plugin.bPluginEnabled = _origEnabled;
+            _plugin.bDisableOtherInjuries = _origDisableOther;
+            _plugin.bDisableSelfInjuries = _origDisableSelf;
+            _plugin.ignorelist.Clear();
+            _plugin.ignorelist.AddRange(_origIgnore);
+            CloseHelpWindow();
+            Close();
+        }
+
+        private void Button_ignore_Click(object? sender, EventArgs e)
+        {
+            if (listbox_openwindows.SelectedIndex == -1) return;
+
+            string selectedName = listbox_openwindows.SelectedItem!.ToString()!;
+            DwForm? form1 = _plugin.forms.FirstOrDefault(f => f.Name == selectedName);
+            if (form1 == null) return;
 
             string ignoreId = form1.Name;
-
-            if (!this._plugin.ignorelist.Contains(ignoreId))
+            if (!_plugin.ignorelist.Contains(ignoreId))
             {
-                this.listBox_ignores.Items.Add(ignoreId);
-                this._plugin.ignorelist.Add(ignoreId);
+                listBox_ignores.Items.Add(ignoreId);
+                _plugin.ignorelist.Add(ignoreId);
             }
 
-            if (form1 is SkinnedMDIChild skinnedForm)
-                this._plugin.forms.Remove(skinnedForm);
-
+            _plugin.forms.Remove(form1);
             form1.Close();
-            this.listbox_openwindows.Items.Remove(form1.Name);
-
-            // Optional: save immediately
-            this._plugin.loadSave.Save();
+            listbox_openwindows.Items.Remove(form1.Name);
         }
 
-
-        private void Button_closewindow_Click(object sender, EventArgs e)
-    {
-        Form form1 = null;
-        foreach (Form form2 in this._plugin.forms)
+        private void Button_closewindow_Click(object? sender, EventArgs e)
         {
-            if (form2.Name.Equals(this.listbox_openwindows.Items[this.listbox_openwindows.SelectedIndex].ToString()))
-            {
-                form1 = form2;
-                break;
-            }
+            if (listbox_openwindows.SelectedIndex == -1) return;
+
+            string selectedName = listbox_openwindows.SelectedItem!.ToString()!;
+            DwForm? form1 = _plugin.forms.FirstOrDefault(f => f.Name == selectedName);
+            if (form1 == null) return;
+
+            listbox_openwindows.Items.Remove(form1.Name);
+            _plugin.forms.Remove(form1);
+            form1.Close();
         }
-        if (form1 == null)
-            return;
 
-        this.listbox_openwindows.Items.Remove(form1.Name);
-        this._plugin.forms.Remove(form1);
-        form1.Close();
-    }
-
-        private void Button_clearall_Click(object sender, EventArgs e)
+        private void Button_clearall_Click(object? sender, EventArgs e)
         {
-            // Remove only current character's ignores
-            string prefix = this._plugin.characterName + ".";
-            for (int i = this._plugin.ignorelist.Count - 1; i >= 0; i--)
-            {
-                if (this._plugin.ignorelist[i] is string id && id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                {
-                    this._plugin.ignorelist.RemoveAt(i);
-                }
-            }
+            // Remove only current character's ignores from both lists
+            string prefix = _plugin.characterName + ".";
+            _plugin.ignorelist.RemoveAll(id =>
+                id.StartsWith(prefix, StringComparison.OrdinalIgnoreCase));
 
-            // Remove only those from UI
             for (int i = listBox_ignores.Items.Count - 1; i >= 0; i--)
             {
                 string item = (string)listBox_ignores.Items[i];
                 if (item.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                {
                     listBox_ignores.Items.RemoveAt(i);
-                }
             }
         }
 
-
-        private void Button_clear_Click(object sender, EventArgs e)
+        private void Button_clear_Click(object? sender, EventArgs e)
         {
-            if (listBox_ignores.SelectedIndex >= 0)
+            if (listBox_ignores.SelectedIndex < 0) return;
+
+            string selected = (string)listBox_ignores.SelectedItem!;
+            _plugin.ignorelist.Remove(selected);
+            listBox_ignores.Items.Remove(selected);
+        }
+
+        private void CbDisableOtherInjuries_CheckedChanged(object? sender, EventArgs e)
+        {
+            _plugin.bDisableOtherInjuries = cbDisableOtherInjuries.Checked;
+        }
+
+        private void CbDisableSelfInjuries_CheckedChanged(object? sender, EventArgs e)
+        {
+            _plugin.bDisableSelfInjuries = cbDisableSelfInjuries.Checked;
+        }
+
+        private void TrackBarScale_ValueChanged(object? sender, EventArgs e)
+        {
+            // Snap to nearest 5 so values are always clean multiples of 0.05
+            int snapped = (int)Math.Round(trackBarScale.Value / 5.0) * 5;
+            if (trackBarScale.Value != snapped)
             {
-                string selected = (string)listBox_ignores.Items[listBox_ignores.SelectedIndex];
-                this._plugin.ignorelist.Remove(selected);
-                listBox_ignores.Items.Remove(selected);
+                trackBarScale.Value = snapped;
+                return;
             }
+
+            float newScale = snapped / 100f;
+            _plugin.Scale = newScale;
+            labelScaleValue.Text = newScale.ToString("F2") + "x";
         }
-
-
-        private void CbDisableOtherInjuries_CheckedChanged(object sender, EventArgs e)
-        {
-            this._plugin.bDisableOtherInjuries = cbDisableOtherInjuries.Checked;
-            this._plugin.loadSave.Save();
-        }
-
-
-        private void CbDisableSelfInjuries_CheckedChanged(object sender, EventArgs e)
-        {
-            this._plugin.bDisableSelfInjuries = cbDisableSelfInjuries.Checked;
-            this._plugin.loadSave.Save();
-        }
-
     }
 }

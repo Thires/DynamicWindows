@@ -2,8 +2,8 @@
 
 namespace DynamicWindows
 {
-  internal class CmdButton : Button
-  {
-    public string cmd_string;
-  }
+    internal class CmdButton : Button
+    {
+        public string cmd_string = string.Empty;
+    }
 }
