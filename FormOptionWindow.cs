@@ -596,7 +596,7 @@ namespace DynamicWindows
 
             // Same themed, read-only (selectable/copyable) RichTextBox window the profile help
             // uses. Monospaced so the dot-leader columns in HelpWindows.CommandHelp line up.
-            var win = _plugin.CreateWindow(id, "Window & Plugin Commands", _plugin.S(520), _plugin.S(440));
+            var win = _plugin.CreateWindow(id, "Window & Plugin Commands", _plugin.S(440), _plugin.S(400));
             win.FormBody.Visible = true;
             win.FormBody.AutoScroll = true;
 
