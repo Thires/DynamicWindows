@@ -21,6 +21,7 @@ namespace DynamicWindows
         private Button buttonFont = null!;
         private Button buttonLinkColor = null!;
         private Button buttonTimerColor = null!;
+        private Button buttonDefaults = null!;
         private ListBox listbox_openwindows = null!;
         private ListBox listBox_ignores = null!;
         private Button button_ignore = null!;
@@ -111,6 +112,7 @@ namespace DynamicWindows
             buttonFont = new Button();
             buttonLinkColor = new Button();
             buttonTimerColor = new Button();
+            buttonDefaults = new Button();
             listbox_openwindows = new ListBox();
             listBox_ignores = new ListBox();
             button_ignore = new Button();
@@ -124,205 +126,287 @@ namespace DynamicWindows
             trackBarScale = new TrackBar();
             labelScaleValue = new Label();
             labelScaleTitle = new Label();
+            ((ISupportInitialize)trackBarScale).BeginInit();
             SuspendLayout();
-
+            // 
             // CheckBoxStowContainer
+            // 
             CheckBoxStowContainer.AutoSize = true;
-            CheckBoxStowContainer.Location = new Point(13, 13);
+            CheckBoxStowContainer.Location = new Point(15, 15);
+            CheckBoxStowContainer.Margin = new Padding(4, 3, 4, 3);
             CheckBoxStowContainer.Name = "CheckBoxStowContainer";
-            CheckBoxStowContainer.Size = new Size(140, 17);
+            CheckBoxStowContainer.Size = new Size(154, 19);
+            CheckBoxStowContainer.TabIndex = 21;
             CheckBoxStowContainer.Text = "Stow Container Window";
             CheckBoxStowContainer.UseVisualStyleBackColor = true;
             CheckBoxStowContainer.CheckedChanged += CheckBoxStowContainer_CheckedChanged;
-
+            // 
             // ButtonClose
+            // 
             ButtonClose.DialogResult = DialogResult.Cancel;
-            ButtonClose.Location = new Point(12, 310);
+            ButtonClose.Location = new Point(14, 421);
+            ButtonClose.Margin = new Padding(4, 3, 4, 3);
             ButtonClose.Name = "ButtonClose";
-            ButtonClose.Size = new Size(75, 23);
+            ButtonClose.Size = new Size(88, 27);
+            ButtonClose.TabIndex = 18;
             ButtonClose.Text = "OK";
             ButtonClose.UseVisualStyleBackColor = true;
             ButtonClose.Click += ButtonClose_Click;
-
+            // 
             // ButtonCancel
-            ButtonCancel.Location = new Point(93, 310);
+            // 
+            ButtonCancel.Location = new Point(108, 421);
+            ButtonCancel.Margin = new Padding(4, 3, 4, 3);
             ButtonCancel.Name = "ButtonCancel";
-            ButtonCancel.Size = new Size(75, 23);
+            ButtonCancel.Size = new Size(88, 27);
+            ButtonCancel.TabIndex = 19;
             ButtonCancel.Text = "Cancel";
             ButtonCancel.UseVisualStyleBackColor = true;
             ButtonCancel.Click += ButtonCancel_Click;
-
-            // checkBoxDisablePlugin
-            checkBoxDisablePlugin.AutoSize = true;
-            checkBoxDisablePlugin.Location = new Point(272, 316);
-            checkBoxDisablePlugin.Name = "checkBoxDisablePlugin";
-            checkBoxDisablePlugin.Size = new Size(123, 17);
-            checkBoxDisablePlugin.Text = "Disable Entire Plugin";
-            checkBoxDisablePlugin.UseVisualStyleBackColor = true;
-            checkBoxDisablePlugin.CheckedChanged += CheckBoxDisablePlugin_CheckedChanged;
-
-            // textBox_Color
-            textBox_Color.Location = new Point(194, 42);
-            textBox_Color.Name = "textBox_Color";
-            textBox_Color.Size = new Size(100, 20);
-            textBox_Color.Text = "Example";
-            textBox_Color.TextAlign = HorizontalAlignment.Center;
-
-            // buttonForeground
-            buttonForeground.Location = new Point(168, 13);
-            buttonForeground.Name = "buttonForeground";
-            buttonForeground.Size = new Size(75, 23);
-            buttonForeground.Text = "Foreground";
-            buttonForeground.UseVisualStyleBackColor = true;
-            buttonForeground.Click += ButtonForeground_Click;
-
-            // buttonBackground
-            buttonBackground.Location = new Point(249, 13);
-            buttonBackground.Name = "buttonBackground";
-            buttonBackground.Size = new Size(75, 23);
-            buttonBackground.Text = "Background";
-            buttonBackground.UseVisualStyleBackColor = true;
-            buttonBackground.Click += ButtonBackground_Click;
-
-            // buttonFont
-            buttonFont.Location = new Point(330, 13);
-            buttonFont.Name = "buttonFont";
-            buttonFont.Size = new Size(75, 23);
-            buttonFont.Text = "Font…";
-            buttonFont.UseVisualStyleBackColor = true;
-            buttonFont.Click += ButtonFont_Click;
-
-            // buttonLinkColor
-            buttonLinkColor.Location = new Point(330, 42);
-            buttonLinkColor.Name = "buttonLinkColor";
-            buttonLinkColor.Size = new Size(75, 23);
-            buttonLinkColor.Text = "Link Color";
-            buttonLinkColor.UseVisualStyleBackColor = true;
-            buttonLinkColor.Click += ButtonLinkColor_Click;
-
-            // buttonTimerColor
-            buttonTimerColor.Location = new Point(330, 71);
-            buttonTimerColor.Name = "buttonTimerColor";
-            buttonTimerColor.Size = new Size(75, 23);
-            buttonTimerColor.Text = "Timer Color";
-            buttonTimerColor.UseVisualStyleBackColor = true;
-            buttonTimerColor.Click += ButtonTimerColor_Click;
-
-            // listbox_openwindows
-            listbox_openwindows.FormattingEnabled = true;
-            listbox_openwindows.Location = new Point(13, 107);
-            listbox_openwindows.Name = "listbox_openwindows";
-            listbox_openwindows.Size = new Size(158, 147);
-
-            // listBox_ignores
-            listBox_ignores.FormattingEnabled = true;
-            listBox_ignores.Location = new Point(238, 107);
-            listBox_ignores.Name = "listBox_ignores";
-            listBox_ignores.Size = new Size(157, 147);
-
-            // button_ignore
-            button_ignore.Location = new Point(13, 260);
-            button_ignore.Name = "button_ignore";
-            button_ignore.Size = new Size(54, 23);
-            button_ignore.Text = "Ignore";
-            button_ignore.UseVisualStyleBackColor = true;
-            button_ignore.Click += Button_ignore_Click;
-
-            // button_clear
-            button_clear.Location = new Point(340, 260);
-            button_clear.Name = "button_clear";
-            button_clear.Size = new Size(55, 23);
-            button_clear.Text = "Clear";
-            button_clear.UseVisualStyleBackColor = true;
-            button_clear.Click += Button_clear_Click;
-
-            // button_clearall
-            button_clearall.Location = new Point(249, 260);
-            button_clearall.Name = "button_clearall";
-            button_clearall.Size = new Size(75, 23);
-            button_clearall.Text = "Clear All";
-            button_clearall.UseVisualStyleBackColor = true;
-            button_clearall.Click += Button_clearall_Click;
-
-            // label1
-            label1.AutoSize = true;
-            label1.Location = new Point(238, 88);
-            label1.Name = "label1";
-            label1.Text = "Ignore List";
-
-            // label2
-            label2.AutoSize = true;
-            label2.Location = new Point(13, 88);
-            label2.Name = "label2";
-            label2.Text = "Open Windows";
-
-            // button_closewindow
-            button_closewindow.Location = new Point(75, 260);
-            button_closewindow.Name = "button_closewindow";
-            button_closewindow.Size = new Size(75, 23);
-            button_closewindow.Text = "Close Win";
-            button_closewindow.UseVisualStyleBackColor = true;
-            button_closewindow.Click += Button_closewindow_Click;
-
-            // cbDisableOtherInjuries
-            cbDisableOtherInjuries.AutoSize = true;
-            cbDisableOtherInjuries.Location = new Point(13, 45);
-            cbDisableOtherInjuries.Name = "cbDisableOtherInjuries";
-            cbDisableOtherInjuries.Text = "Disable Other Injuries Windows";
-            cbDisableOtherInjuries.UseVisualStyleBackColor = true;
-            cbDisableOtherInjuries.CheckedChanged += CbDisableOtherInjuries_CheckedChanged;
-
-            // cbDisableSelfInjuries
-            cbDisableSelfInjuries.AutoSize = true;
-            cbDisableSelfInjuries.Location = new Point(13, 65);
-            cbDisableSelfInjuries.Name = "cbDisableSelfInjuries";
-            cbDisableSelfInjuries.Text = "Disable Self Injuries Window";
-            cbDisableSelfInjuries.UseVisualStyleBackColor = true;
-            cbDisableSelfInjuries.CheckedChanged += CbDisableSelfInjuries_CheckedChanged;
-
-            // Form
-            AutoScaleDimensions = new SizeF(6f, 13f);
-            AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(410, 400);
-            ControlBox = false;
-            Name = "FormOptionWindow";
-            Text = "Dynamic Window Options";
-
-            // labelScaleTitle
-            labelScaleTitle.AutoSize = true;
-            labelScaleTitle.Location = new Point(13, 290);
-            labelScaleTitle.Name = "labelScaleTitle";
-            labelScaleTitle.Text = "UI Scale — 1.00x to 1.50x  (1.25x recommended):";
-
-            // trackBarScale
-            trackBarScale.Location = new Point(13, 308);
-            trackBarScale.Name = "trackBarScale";
-            trackBarScale.Size = new Size(330, 30);
-            trackBarScale.ValueChanged += TrackBarScale_ValueChanged;
-
-            // labelScaleValue
-            labelScaleValue.AutoSize = true;
-            labelScaleValue.Location = new Point(350, 313);
-            labelScaleValue.Name = "labelScaleValue";
-            labelScaleValue.Text = "1.00x";
-
-            // ButtonClose (moved down)
-            ButtonClose.Location = new Point(12, 365);
-
-            // ButtonCancel (moved down, beside OK)
-            ButtonCancel.Location = new Point(93, 365);
-
-            // buttonHelp (bottom row, after Cancel)
-            buttonHelp.Location = new Point(174, 365);
+            // 
+            // buttonHelp
+            // 
+            buttonHelp.Location = new Point(203, 421);
+            buttonHelp.Margin = new Padding(4, 3, 4, 3);
             buttonHelp.Name = "buttonHelp";
-            buttonHelp.Size = new Size(75, 23);
+            buttonHelp.Size = new Size(88, 27);
+            buttonHelp.TabIndex = 20;
             buttonHelp.Text = "Help";
             buttonHelp.UseVisualStyleBackColor = true;
             buttonHelp.Click += ButtonHelp_Click;
-
-            // checkBoxDisablePlugin (moved down)
-            checkBoxDisablePlugin.Location = new Point(272, 371);
-
+            // 
+            // checkBoxDisablePlugin
+            // 
+            checkBoxDisablePlugin.AutoSize = true;
+            checkBoxDisablePlugin.Location = new Point(317, 428);
+            checkBoxDisablePlugin.Margin = new Padding(4, 3, 4, 3);
+            checkBoxDisablePlugin.Name = "checkBoxDisablePlugin";
+            checkBoxDisablePlugin.Size = new Size(134, 19);
+            checkBoxDisablePlugin.TabIndex = 17;
+            checkBoxDisablePlugin.Text = "Disable Entire Plugin";
+            checkBoxDisablePlugin.UseVisualStyleBackColor = true;
+            checkBoxDisablePlugin.CheckedChanged += CheckBoxDisablePlugin_CheckedChanged;
+            // 
+            // textBox_Color
+            // 
+            textBox_Color.Location = new Point(226, 46);
+            textBox_Color.Margin = new Padding(4, 3, 4, 3);
+            textBox_Color.Multiline = true;
+            textBox_Color.Name = "textBox_Color";
+            textBox_Color.Size = new Size(116, 28);
+            textBox_Color.TabIndex = 16;
+            textBox_Color.Text = "Example";
+            textBox_Color.TextAlign = HorizontalAlignment.Center;
+            // 
+            // buttonForeground
+            // 
+            buttonForeground.Location = new Point(196, 15);
+            buttonForeground.Margin = new Padding(4, 3, 4, 3);
+            buttonForeground.Name = "buttonForeground";
+            buttonForeground.Size = new Size(88, 27);
+            buttonForeground.TabIndex = 11;
+            buttonForeground.Text = "Foreground";
+            buttonForeground.UseVisualStyleBackColor = true;
+            buttonForeground.Click += ButtonForeground_Click;
+            // 
+            // buttonBackground
+            // 
+            buttonBackground.Location = new Point(290, 15);
+            buttonBackground.Margin = new Padding(4, 3, 4, 3);
+            buttonBackground.Name = "buttonBackground";
+            buttonBackground.Size = new Size(88, 27);
+            buttonBackground.TabIndex = 10;
+            buttonBackground.Text = "Background";
+            buttonBackground.UseVisualStyleBackColor = true;
+            buttonBackground.Click += ButtonBackground_Click;
+            // 
+            // buttonFont
+            // 
+            buttonFont.Location = new Point(385, 15);
+            buttonFont.Margin = new Padding(4, 3, 4, 3);
+            buttonFont.Name = "buttonFont";
+            buttonFont.Size = new Size(88, 27);
+            buttonFont.TabIndex = 12;
+            buttonFont.Text = "Font…";
+            buttonFont.UseVisualStyleBackColor = true;
+            buttonFont.Click += ButtonFont_Click;
+            // 
+            // buttonLinkColor
+            // 
+            buttonLinkColor.Location = new Point(385, 48);
+            buttonLinkColor.Margin = new Padding(4, 3, 4, 3);
+            buttonLinkColor.Name = "buttonLinkColor";
+            buttonLinkColor.Size = new Size(88, 27);
+            buttonLinkColor.TabIndex = 13;
+            buttonLinkColor.Text = "Link Color";
+            buttonLinkColor.UseVisualStyleBackColor = true;
+            buttonLinkColor.Click += ButtonLinkColor_Click;
+            // 
+            // buttonTimerColor
+            // 
+            buttonTimerColor.Location = new Point(385, 82);
+            buttonTimerColor.Margin = new Padding(4, 3, 4, 3);
+            buttonTimerColor.Name = "buttonTimerColor";
+            buttonTimerColor.Size = new Size(88, 27);
+            buttonTimerColor.TabIndex = 14;
+            buttonTimerColor.Text = "Timer Color";
+            buttonTimerColor.UseVisualStyleBackColor = true;
+            buttonTimerColor.Click += ButtonTimerColor_Click;
+            // 
+            // buttonDefaults
+            // 
+            buttonDefaults.Location = new Point(226, 77);
+            buttonDefaults.Margin = new Padding(4, 3, 4, 3);
+            buttonDefaults.Name = "buttonDefaults";
+            buttonDefaults.Size = new Size(117, 25);
+            buttonDefaults.TabIndex = 15;
+            buttonDefaults.Text = "Reset Defaults";
+            buttonDefaults.UseVisualStyleBackColor = true;
+            buttonDefaults.Click += ButtonDefaults_Click;
+            // 
+            // listbox_openwindows
+            // 
+            listbox_openwindows.FormattingEnabled = true;
+            listbox_openwindows.ItemHeight = 15;
+            listbox_openwindows.Location = new Point(15, 123);
+            listbox_openwindows.Margin = new Padding(4, 3, 4, 3);
+            listbox_openwindows.Name = "listbox_openwindows";
+            listbox_openwindows.Size = new Size(184, 169);
+            listbox_openwindows.TabIndex = 9;
+            // 
+            // listBox_ignores
+            // 
+            listBox_ignores.FormattingEnabled = true;
+            listBox_ignores.ItemHeight = 15;
+            listBox_ignores.Location = new Point(278, 123);
+            listBox_ignores.Margin = new Padding(4, 3, 4, 3);
+            listBox_ignores.Name = "listBox_ignores";
+            listBox_ignores.Size = new Size(182, 169);
+            listBox_ignores.TabIndex = 8;
+            // 
+            // button_ignore
+            // 
+            button_ignore.Location = new Point(15, 300);
+            button_ignore.Margin = new Padding(4, 3, 4, 3);
+            button_ignore.Name = "button_ignore";
+            button_ignore.Size = new Size(63, 27);
+            button_ignore.TabIndex = 7;
+            button_ignore.Text = "Ignore";
+            button_ignore.UseVisualStyleBackColor = true;
+            button_ignore.Click += Button_ignore_Click;
+            // 
+            // button_clear
+            // 
+            button_clear.Location = new Point(397, 300);
+            button_clear.Margin = new Padding(4, 3, 4, 3);
+            button_clear.Name = "button_clear";
+            button_clear.Size = new Size(64, 27);
+            button_clear.TabIndex = 6;
+            button_clear.Text = "Clear";
+            button_clear.UseVisualStyleBackColor = true;
+            button_clear.Click += Button_clear_Click;
+            // 
+            // button_clearall
+            // 
+            button_clearall.Location = new Point(290, 300);
+            button_clearall.Margin = new Padding(4, 3, 4, 3);
+            button_clearall.Name = "button_clearall";
+            button_clearall.Size = new Size(88, 27);
+            button_clearall.TabIndex = 5;
+            button_clearall.Text = "Clear All";
+            button_clearall.UseVisualStyleBackColor = true;
+            button_clearall.Click += Button_clearall_Click;
+            // 
+            // label1
+            // 
+            label1.AutoSize = true;
+            label1.Location = new Point(278, 102);
+            label1.Margin = new Padding(4, 0, 4, 0);
+            label1.Name = "label1";
+            label1.Size = new Size(62, 15);
+            label1.TabIndex = 4;
+            label1.Text = "Ignore List";
+            // 
+            // label2
+            // 
+            label2.AutoSize = true;
+            label2.Location = new Point(15, 102);
+            label2.Margin = new Padding(4, 0, 4, 0);
+            label2.Name = "label2";
+            label2.Size = new Size(88, 15);
+            label2.TabIndex = 3;
+            label2.Text = "Open Windows";
+            // 
+            // button_closewindow
+            // 
+            button_closewindow.Location = new Point(88, 300);
+            button_closewindow.Margin = new Padding(4, 3, 4, 3);
+            button_closewindow.Name = "button_closewindow";
+            button_closewindow.Size = new Size(88, 27);
+            button_closewindow.TabIndex = 2;
+            button_closewindow.Text = "Close Win";
+            button_closewindow.UseVisualStyleBackColor = true;
+            button_closewindow.Click += Button_closewindow_Click;
+            // 
+            // cbDisableOtherInjuries
+            // 
+            cbDisableOtherInjuries.AutoSize = true;
+            cbDisableOtherInjuries.Location = new Point(15, 52);
+            cbDisableOtherInjuries.Margin = new Padding(4, 3, 4, 3);
+            cbDisableOtherInjuries.Name = "cbDisableOtherInjuries";
+            cbDisableOtherInjuries.Size = new Size(190, 19);
+            cbDisableOtherInjuries.TabIndex = 1;
+            cbDisableOtherInjuries.Text = "Disable Other Injuries Windows";
+            cbDisableOtherInjuries.UseVisualStyleBackColor = true;
+            cbDisableOtherInjuries.CheckedChanged += CbDisableOtherInjuries_CheckedChanged;
+            // 
+            // cbDisableSelfInjuries
+            // 
+            cbDisableSelfInjuries.AutoSize = true;
+            cbDisableSelfInjuries.Location = new Point(15, 75);
+            cbDisableSelfInjuries.Margin = new Padding(4, 3, 4, 3);
+            cbDisableSelfInjuries.Name = "cbDisableSelfInjuries";
+            cbDisableSelfInjuries.Size = new Size(174, 19);
+            cbDisableSelfInjuries.TabIndex = 0;
+            cbDisableSelfInjuries.Text = "Disable Self Injuries Window";
+            cbDisableSelfInjuries.UseVisualStyleBackColor = true;
+            cbDisableSelfInjuries.CheckedChanged += CbDisableSelfInjuries_CheckedChanged;
+            // 
+            // trackBarScale
+            // 
+            trackBarScale.Location = new Point(15, 355);
+            trackBarScale.Margin = new Padding(4, 3, 4, 3);
+            trackBarScale.Name = "trackBarScale";
+            trackBarScale.Size = new Size(385, 45);
+            trackBarScale.TabIndex = 23;
+            trackBarScale.ValueChanged += TrackBarScale_ValueChanged;
+            // 
+            // labelScaleValue
+            // 
+            labelScaleValue.AutoSize = true;
+            labelScaleValue.Location = new Point(408, 361);
+            labelScaleValue.Margin = new Padding(4, 0, 4, 0);
+            labelScaleValue.Name = "labelScaleValue";
+            labelScaleValue.Size = new Size(33, 15);
+            labelScaleValue.TabIndex = 24;
+            labelScaleValue.Text = "1.00x";
+            // 
+            // labelScaleTitle
+            // 
+            labelScaleTitle.AutoSize = true;
+            labelScaleTitle.Location = new Point(15, 335);
+            labelScaleTitle.Margin = new Padding(4, 0, 4, 0);
+            labelScaleTitle.Name = "labelScaleTitle";
+            labelScaleTitle.Size = new Size(259, 15);
+            labelScaleTitle.TabIndex = 22;
+            labelScaleTitle.Text = "UI Scale — 1.00x to 1.50x  (1.25x recommended):";
+            // 
+            // FormOptionWindow
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(478, 462);
+            ControlBox = false;
             Controls.Add(cbDisableSelfInjuries);
             Controls.Add(cbDisableOtherInjuries);
             Controls.Add(button_closewindow);
@@ -338,6 +422,7 @@ namespace DynamicWindows
             Controls.Add(buttonFont);
             Controls.Add(buttonLinkColor);
             Controls.Add(buttonTimerColor);
+            Controls.Add(buttonDefaults);
             Controls.Add(textBox_Color);
             Controls.Add(checkBoxDisablePlugin);
             Controls.Add(ButtonClose);
@@ -347,7 +432,10 @@ namespace DynamicWindows
             Controls.Add(labelScaleTitle);
             Controls.Add(trackBarScale);
             Controls.Add(labelScaleValue);
-
+            Margin = new Padding(4, 3, 4, 3);
+            Name = "FormOptionWindow";
+            Text = "Dynamic Window Options";
+            ((ISupportInitialize)trackBarScale).EndInit();
             ResumeLayout(false);
             PerformLayout();
         }
@@ -457,6 +545,24 @@ namespace DynamicWindows
                 _plugin.timerBarColor = colorDialog.Color;
                 buttonTimerColor.ForeColor = colorDialog.Color;
             }
+        }
+
+        private void ButtonDefaults_Click(object? sender, EventArgs e)
+        {
+            // Reset appearance settings to their defaults (these mirror the defaults in LoadSave).
+            _plugin.formfore = Color.White;
+            _plugin.formback = Color.Black;
+            _plugin.linkColor = Color.Blue;
+            _plugin.timerBarColor = Color.RoyalBlue;
+            _plugin.FontFamilyName = SystemFonts.DefaultFont.Name;
+            _plugin.FontStyleChoice = FontStyle.Regular;
+
+            // Refresh the previews so the reset is visible immediately (OK saves, Cancel reverts).
+            textBox_Color.ForeColor = _plugin.formfore;
+            textBox_Color.BackColor = _plugin.formback;
+            buttonLinkColor.ForeColor = _plugin.linkColor;
+            buttonTimerColor.ForeColor = _plugin.timerBarColor;
+            ApplyFontPreview();
         }
 
         private void ButtonClose_Click(object? sender, EventArgs e)
