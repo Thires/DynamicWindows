@@ -387,6 +387,56 @@ namespace DynamicWindows
                 if (ctrl != null)
                     ctrl.Width = Math.Max(ctrl.Width, finalW - ctrl.Left - PAD);
             }
+
+            // Bug Report window only: widen the category dropdown to fit its longest option
+            // and align category/title/details to a shared right edge (start points unchanged).
+            if (dialog.Name == "bugDialogBox")
+                AlignBugReportInputs(dialog, font);
+        }
+
+        // Bug Report: give the category combo enough width for its longest option, then snap
+        // category/title/details AND the instructions box to one shared right edge, size the
+        // window to that edge, and move the right-pinned Cancel button to match. Scoped to that
+        // window; start (left) positions are left exactly as the layout placed them.
+        private static void AlignBugReportInputs(DwForm dialog, Font font)
+        {
+            var category = dialog.FormBody.Controls["category"] as ComboBox;
+            var instructions = dialog.FormBody.Controls["instructions"];
+            var cancel = dialog.FormBody.Controls["close"];
+
+            var inputs = new[] { "category", "title", "details" }
+                .Select(n => dialog.FormBody.Controls[n])
+                .OfType<Control>()
+                .ToList();
+            if (inputs.Count == 0) return;
+
+            // Shared right edge: the widest input, but at least enough for the category's longest option.
+            int rightEdge = inputs.Max(c => c.Right);
+            if (category != null)
+            {
+                int longest = 0;
+                foreach (var item in category.Items)
+                {
+                    int w = TextRenderer.MeasureText(item?.ToString() ?? string.Empty, font).Width;
+                    if (w > longest) longest = w;
+                }
+                longest += SystemInformation.VerticalScrollBarWidth + 8;   // dropdown arrow + padding
+                rightEdge = Math.Max(rightEdge, category.Left + longest);
+                category.DropDownWidth = Math.Max(category.DropDownWidth, longest);  // open list never clips
+            }
+
+            // Align the three inputs and the instructions box to that edge.
+            foreach (var c in inputs)
+                c.Width = Math.Max(20, rightEdge - c.Left);
+            if (instructions != null)
+                instructions.Width = Math.Max(20, rightEdge - instructions.Left);
+
+            // Size the window to the shared edge and move the right-pinned Cancel button to it.
+            int newWidth = rightEdge + PAD;
+            if (newWidth != dialog.ClientSize.Width)
+                dialog.ClientSize = new Size(newWidth, dialog.ClientSize.Height);
+            if (cancel != null)
+                cancel.Left = rightEdge - cancel.Width;
         }
 
         // ── Grid assignment ───────────────────────────────────────────────────
