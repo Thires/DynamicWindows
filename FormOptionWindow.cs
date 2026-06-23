@@ -556,6 +556,9 @@ namespace DynamicWindows
             _plugin.timerBarColor = Color.RoyalBlue;
             _plugin.FontFamilyName = SystemFonts.DefaultFont.Name;
             _plugin.FontStyleChoice = FontStyle.Regular;
+            _plugin.Scale = 1.0f;
+            trackBarScale.Value = 100;
+            labelScaleValue.Text = _plugin.Scale.ToString("F2") + "x";
 
             // Refresh the previews so the reset is visible immediately (OK saves, Cancel reverts).
             textBox_Color.ForeColor = _plugin.formfore;
