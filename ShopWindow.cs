@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using System.Xml;
@@ -123,6 +124,16 @@ namespace DynamicWindows
             };
             tree.BeforeExpand += Tree_BeforeExpand;
             tree.AfterSelect += Tree_AfterSelect;
+            // Right-click selects the node under the cursor, then shows the copy menu.
+            tree.MouseDown += (s, e) =>
+            {
+                if (e.Button == MouseButtons.Right)
+                {
+                    var n = tree.GetNodeAt(e.Location);
+                    if (n != null) tree.SelectedNode = n;
+                }
+            };
+            tree.ContextMenuStrip = BuildCopyMenu();
             split.Panel1.Controls.Add(tree);
             split.Panel1.Controls.Add(statusLabel);
 
@@ -361,6 +372,59 @@ namespace DynamicWindows
         }
 
         // ── Helpers ───────────────────────────────────────────────────────────
+
+        // ── Copy support ──────────────────────────────────────────────────────
+
+        private ContextMenuStrip BuildCopyMenu()
+        {
+            var menu = new ContextMenuStrip();
+            menu.Items.Add("Copy selected item", null, (s, e) => CopySelectedItem(tree.SelectedNode));
+            menu.Items.Add("Copy surface", null, (s, e) => CopySelectedSurface(tree.SelectedNode));
+            menu.Items.Add("Copy all surfaces", null, (s, e) => CopyAll());
+            menu.Items.Add(new ToolStripSeparator());
+            menu.Items.Add("Copy detail pane", null, (s, e) => CopyToClipboard(detailBox.Text));
+            return menu;
+        }
+
+        private static void CopySelectedItem(TreeNode? node)
+        {
+            if (node != null) CopyToClipboard(node.Text);
+        }
+
+        // Copy a surface and its items. If an item is selected, copy its parent surface branch.
+        private static void CopySelectedSurface(TreeNode? node)
+        {
+            if (node == null) return;
+            TreeNode surface = node.Parent ?? node;   // a top-level node is the surface itself
+            var sb = new StringBuilder();
+            AppendBranch(sb, surface);
+            CopyToClipboard(sb.ToString().TrimEnd());
+        }
+
+        private void CopyAll()
+        {
+            var sb = new StringBuilder();
+            foreach (TreeNode surface in tree.Nodes)
+            {
+                AppendBranch(sb, surface);
+                sb.AppendLine();
+            }
+            CopyToClipboard(sb.ToString().TrimEnd());
+        }
+
+        private static void AppendBranch(StringBuilder sb, TreeNode surface)
+        {
+            sb.AppendLine(surface.Text);
+            foreach (TreeNode item in surface.Nodes)
+                if (item.Tag != null)   // skip the "" placeholder on un-expanded surfaces
+                    sb.AppendLine("    " + item.Text);
+        }
+
+        private static void CopyToClipboard(string text)
+        {
+            if (string.IsNullOrEmpty(text)) return;
+            try { Clipboard.SetText(text); } catch { /* clipboard busy/unavailable */ }
+        }
 
         private void RunOnUi(Action action)
         {
