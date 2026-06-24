@@ -381,7 +381,7 @@ namespace DynamicWindows
 
             ghost.SendText("#window remove profileHelp");
             win.FormBody.Controls.Add(contentBox);
-            AddHelpCloseRow(win);
+            AddHelpCloseRow(win);   // Close button + Esc, same as the command-help window
             win.ShowForm();
         }
 
@@ -416,7 +416,13 @@ namespace DynamicWindows
                            firstChild.GetAttribute("clear") == "t";
 
             if (!isStreamDialog && !isEmpty && firstChild != null)
+            {
                 _dialogLayout.Apply(dialog, firstChild);
+                // Retain a standalone copy of the laid-out container so later partial
+                // dialogData updates can be merged and re-laid-out by the same engine
+                // instead of falling back to raw server coords (see Parse_xml_updatewindow).
+                dialog.Tag = CloneContainer(firstChild);
+            }
             else if (!isStreamDialog && isEmpty)
                 // Empty container — content arrives via dialogData; layout deferred to exposeDialog
                 _pendingLayout.Add(id);
@@ -453,6 +459,16 @@ namespace DynamicWindows
             bool isPending = _pendingLayout.Contains(id);
             bool isStreamDialog = id == "spellChoose" || id == "featChoose" || id == "featRemove";
 
+            // Does this update bring in a control we haven't placed yet? Only then do we
+            // need the layout engine. A pure value update (text only) must NOT re-layout:
+            // re-running the content-sensitive grid churns column widths and shifts/expands
+            // the whole window when a long value is set. Captured before BuildDialogControls
+            // creates the new controls. (Store window.)
+            bool introducesNewControl = xelem.ChildNodes.OfType<XmlElement>()
+                .Select(e => e.GetAttribute("id"))
+                .Where(cid => !string.IsNullOrEmpty(cid))
+                .Any(cid => !dialog.FormBody.Controls.ContainsKey(cid));
+
             dialog.FormBody.Visible = false;
             BuildDialogControls(xelem, dialog);
 
@@ -482,10 +498,30 @@ namespace DynamicWindows
             }
             else
             {
-                if (!isStreamDialog)
-                    AutoFitDialog(dialog); // only for stream dialogs that need size refresh
+                // A grid-laid-out window (e.g. the store window) receiving a partial
+                // dialogData update. Merge the update into the stored open container and
+                // re-run the layout engine so align/anchor controls resolve to their real
+                // positions instead of raw server coords — otherwise the Change/Clear
+                // buttons drop into the upper-left corner and the labels overlap.
+                if (!isStreamDialog && xelem.GetAttribute("clear") != "t"
+                    && dialog.Tag is XmlElement storedContainer)
+                {
+                    // Keep the retained container current either way, so a later structural
+                    // update re-lays out over the full, up-to-date control set.
+                    MergeContainer(storedContainer, xelem);
+
+                    // Re-run the grid only when the set of controls actually changed.
+                    // Value-only updates keep the positions assigned on open and just
+                    // refresh their text — no churn, no window growth, no left-shift.
+                    if (introducesNewControl)
+                        _dialogLayout.Apply(dialog, storedContainer);
+                    else
+                        AutoFitDialog(dialog);
+                }
                 else
+                {
                     AutoFitDialog(dialog);
+                }
 
                 dialog.FormBody.Visible = true;
                 dialog.FormBody.AutoScroll = true;
@@ -900,9 +936,29 @@ namespace DynamicWindows
 
         private void Parse_command_buttons(XmlElement cbx, DwForm dialog, bool useServerLayout = false)
         {
+            string id = cbx.GetAttribute("id");
+
+            // Reuse an existing button: partial dialogData updates (e.g. the store window
+            // after clearing the custom string) re-send the same cmdButtons. Creating a
+            // fresh CmdButton each time stacked duplicate instances at (0,0) in the
+            // upper-left corner, since only the original got repositioned by the layout
+            // engine. Update the existing button in place instead.
+            if (dialog.FormBody.Controls[id] is CmdButton existingBtn)
+            {
+                existingBtn.Text = cbx.GetAttribute("value");
+                existingBtn.cmd_string = cbx.GetAttribute("cmd");
+                if (useServerLayout)
+                {
+                    existingBtn.Size = BuildSize(cbx, 75, 23);
+                    existingBtn.Location = SetLocation(cbx, existingBtn, dialog);
+                }
+                existingBtn.Invalidate();
+                return;
+            }
+
             var btn = new CmdButton
             {
-                Name = cbx.GetAttribute("id"),
+                Name = id,
                 Text = cbx.GetAttribute("value"),
                 cmd_string = cbx.GetAttribute("cmd"),
                 AutoSize = true,
@@ -1436,6 +1492,37 @@ namespace DynamicWindows
                 dialog.ClientSize = new Size(neededWidth, dialog.ClientSize.Height);
             if (neededHeight > dialog.FormBody.Height)
                 dialog.ClientSize = new Size(dialog.ClientSize.Width, neededHeight + 22);
+        }
+
+        // Standalone deep copy of a dialogData container, detached from the parse document
+        // so it can be retained on dialog.Tag and merged with later partial updates.
+        private static XmlElement CloneContainer(XmlElement source)
+        {
+            var doc = new XmlDocument();
+            var copy = (XmlElement)doc.ImportNode(source, true);
+            doc.AppendChild(copy);
+            return copy;
+        }
+
+        // Merge a partial dialogData update into the retained container: a child replaces
+        // an existing element with the same id, and a brand-new id is appended. This lets
+        // the layout engine re-run over the full control set on a partial update.
+        private static void MergeContainer(XmlElement target, XmlElement update)
+        {
+            foreach (XmlElement child in update.ChildNodes.OfType<XmlElement>())
+            {
+                var imported = (XmlElement)target.OwnerDocument.ImportNode(child, true);
+                string cid = child.GetAttribute("id");
+
+                XmlElement? existing = string.IsNullOrEmpty(cid) ? null
+                    : target.ChildNodes.OfType<XmlElement>()
+                        .FirstOrDefault(e => e.GetAttribute("id") == cid);
+
+                if (existing != null)
+                    target.ReplaceChild(imported, existing);
+                else
+                    target.AppendChild(imported);
+            }
         }
 
         // =====================================================================

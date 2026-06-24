@@ -392,6 +392,28 @@ namespace DynamicWindows
             // and align category/title/details to a shared right edge (start points unchanged).
             if (dialog.Name == "bugDialogBox")
                 AlignBugReportInputs(dialog, font);
+            if (dialog.Name == "storeWindow")
+                AlignStoreCustomFields(dialog);
+        }
+
+        // Store window: the custom-section value labels (customString / customContainer, plus
+        // the server's duplicate stringContainer) are sent at left=100, but the grid places
+        // them off the wide "Items containing the string:" column and lets them drift right
+        // whenever the server re-sends a longer value. Pin them to the main value column so
+        // they line up with the other rows and stay put when their text is set. Scoped here.
+        private static void AlignStoreCustomFields(DwForm dialog)
+        {
+            var c = dialog.FormBody.Controls;
+            if (c["ammunitionContainer"] is not Control mainValue) return;
+            int leftX = mainValue.Left;
+
+            foreach (var id in new[] { "customString", "customContainer", "stringContainer" })
+                if (c[id] is Control v) v.Left = leftX;
+
+            // stringContainer is the server's duplicate of customContainer — sit it exactly
+            // on top so the pair reads as a single line rather than two offset labels.
+            if (c["customContainer"] is Control cc && c["stringContainer"] is Control sc)
+                sc.Top = cc.Top;
         }
 
         // Bug Report: give the category combo enough width for its longest option, then snap
