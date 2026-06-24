@@ -1243,6 +1243,27 @@ namespace DynamicWindows
                     if (btn.Parent is Form f) { forms.Remove((DwForm)f); f.Close(); }
                     return;
                 }
+
+                // A token is still unresolved here — nothing was selected to fill it, so
+                // there is no valid command to send (the literal %token% just yields
+                // "Please rephrase that command"). If the unresolved token is a radio group
+                // with nothing checked (e.g. the Available Containers OK, cmd="%containers%"),
+                // the plugin closes the window itself, since the game never sends a
+                // closeDialog for a command it never received. Any other unresolved token
+                // just suppresses the send and leaves the window open for a selection.
+                if (cmd.Contains('%'))
+                {
+                    bool unselectedRadioGroup =
+                        panel.Controls.OfType<CbRadio>().Any(r => cmd.Contains("%" + r.group + "%"))
+                        && !panel.Controls.OfType<CbRadio>().Any(r => r.Checked);
+
+                    if (unselectedRadioGroup && btn.FindForm() is DwForm uf)
+                    {
+                        forms.Remove(uf);
+                        uf.Close();
+                    }
+                    return;
+                }
             }
 
             if (cmd.TrimEnd() == "store _set -1")
@@ -1274,6 +1295,15 @@ namespace DynamicWindows
             foreach (Control ctrl in rb.Parent!.Controls)
                 if (ctrl is CbRadio other && other.group == rb.group)
                     other.Checked = (other == rb);
+
+            // If a button in this window confirms this radio group (its cmd references
+            // %group%, e.g. the Available Containers OK uses %containers%), selecting the
+            // radio is only a choice — it must NOT fire the command, and the bag is set
+            // only when OK is clicked. (This also stops the selection from double-sending.)
+            // Groups with no such confirm button keep auto-send on select (e.g. injuries).
+            bool confirmedByButton = rb.Parent!.Controls.OfType<CmdButton>()
+                .Any(b => (b.cmd_string ?? string.Empty).Contains("%" + rb.group + "%"));
+            if (confirmedByButton) return;
 
             if (!string.IsNullOrEmpty(rb.command))
             {

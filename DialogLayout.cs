@@ -27,6 +27,7 @@ namespace DynamicWindows
         public void Apply(DwForm dialog, XmlElement container)
         {
             Font font = _plugin.LayoutFont;
+            bool isStore = dialog.Name == "storeWindow";
 
             var elems = container.ChildNodes.OfType<XmlElement>()
                 .Where(e => e.Name != "clearContainer")
@@ -78,6 +79,17 @@ namespace DynamicWindows
                 // of driving the value column — regardless of whether they happen to be solo on
                 // their row. Otherwise the 250px box inflates col1 and pushes Guild far right.
                 if (c.Xml.Name == "streamBox")
+                {
+                    rowH[c.Row] = Math.Max(rowH[c.Row], ctrl.Height);
+                    continue;
+                }
+
+                // Store window: the custom value labels are re-pinned to the main value
+                // column by AlignStoreCustomFields, so their (possibly long) text must not
+                // drive the grid width here. Otherwise a container name of ~18+ characters
+                // grows the window past its server width on first open, kicking in a
+                // horizontal scroll and a paint glitch. Keep their row height.
+                if (isStore && (c.Id == "customString" || c.Id == "customContainer" || c.Id == "stringContainer"))
                 {
                     rowH[c.Row] = Math.Max(rowH[c.Row], ctrl.Height);
                     continue;

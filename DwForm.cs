@@ -86,6 +86,7 @@ namespace DynamicWindows
             FormBody.MouseClick += FormBody_MouseClick;
             FormBody.Paint += FormBody_Paint;
             FormBody.Resize += (s, e) => FormBody.Invalidate();
+            FormBody.Scroll += (s, e) => FormBody.Invalidate();   // redraw frame cleanly when scrolled
             Controls.Add(FormBody);
         }
 
@@ -166,6 +167,10 @@ namespace DynamicWindows
 
         private void FormBody_Paint(object? sender, PaintEventArgs e)
         {
+            // Draw at the viewport edges regardless of AutoScroll offset. Without this the
+            // frame is drawn at scroll-translated coordinates and leaves vertical streaks
+            // when the panel scrolls horizontally (e.g. a very wide store window).
+            e.Graphics.ResetTransform();
             var r = FormBody.ClientRectangle;
             using var pen = new Pen(BorderColor());
             e.Graphics.DrawRectangle(pen, 0, 0, r.Width - 1, r.Height - 1);
