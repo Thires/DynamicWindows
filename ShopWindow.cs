@@ -63,7 +63,7 @@ namespace DynamicWindows
             RunOnUi(() =>
             {
                 tree.Nodes.Clear();
-                statusLabel.Text = "";
+                SetStatus("");
                 detailBox.Clear();
             });
         }
@@ -113,6 +113,7 @@ namespace DynamicWindows
                 BackColor = plugin.formback,
                 ForeColor = plugin.formfore,
                 Text = "",
+                Visible = false,   // collapses the strip until there's a message
             };
             tree = new TreeView
             {
@@ -243,7 +244,7 @@ namespace DynamicWindows
                 if (text.Trim('\n', '\r', ' ') == "There is nothing to buy here.")
                 {
                     ScanStatus = ScanStatusEnum.None;
-                    RunOnUi(() => statusLabel.Text = "There is nothing to buy here.");
+                    RunOnUi(() => SetStatus("There is nothing to buy here."));
                 }
             }
             else if (ScanStatus == ScanStatusEnum.Surface)
@@ -424,6 +425,14 @@ namespace DynamicWindows
         {
             if (string.IsNullOrEmpty(text)) return;
             try { Clipboard.SetText(text); } catch { /* clipboard busy/unavailable */ }
+        }
+
+        // Shows the status strip only when there's a message; an empty, hidden
+        // Dock.Top label takes no vertical space, so no blank band below the title.
+        private void SetStatus(string text)
+        {
+            statusLabel.Text = text;
+            statusLabel.Visible = text.Length > 0;
         }
 
         private void RunOnUi(Action action)
