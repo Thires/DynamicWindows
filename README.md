@@ -9,7 +9,8 @@ bank withdraw<br>
 bug window<br>
 injury window for others<br>
 injury window for self<br>
-magical feats choosing<br>
+magical feats forgetting<br>
+magical feats learning<br>
 profile /edit<br>
 shopping window<br>
 spells choosing<br>
@@ -36,9 +37,9 @@ tdp plan<br>
 
 <img width="232" height="312" alt="image" src="https://github.com/user-attachments/assets/ccf016d1-e70e-4090-af8f-bed95154b7e2" />
 
-<img width="602" height="524" alt="image" src="https://github.com/user-attachments/assets/a83029b3-2c1d-4b2e-be8b-87e5bf656c46" />
-
 <img width="602" height="524" alt="image" src="https://github.com/user-attachments/assets/182be176-c899-4ce6-992d-2c5f41f96f02" />
+
+<img width="602" height="524" alt="image" src="https://github.com/user-attachments/assets/a83029b3-2c1d-4b2e-be8b-87e5bf656c46" />
 <br>
 
 <img width="352" height="585" alt="image" src="https://github.com/user-attachments/assets/61f2cffb-593a-4882-8303-79517c765e3d" />
