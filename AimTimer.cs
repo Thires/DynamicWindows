@@ -87,7 +87,7 @@ namespace DynamicWindows
                 Name = "bar",
                 Dock = DockStyle.Fill,   // fills formBody exactly — no gap
                 BackColor = _plugin.formback,
-                ForeColor = _plugin.formfore,
+                ForeColor = _plugin.timerBarTextColor,
                 FillColor = _plugin.timerBarColor,
             };
 

@@ -40,7 +40,7 @@ namespace DynamicWindows
 
         // Snapshot of every setting this window can change, captured when it opens, so Cancel
         // can revert without writing the XML. OK is the only path that persists.
-        private readonly Color _origFore, _origBack, _origLink, _origTimer;
+        private readonly Color _origFore, _origBack, _origLink, _origTimer, _origTimerText;
         private readonly string _origFontFamily;
         private readonly FontStyle _origFontStyle;
         private readonly float _origScale;
@@ -55,6 +55,7 @@ namespace DynamicWindows
             _origBack = plugin.formback;
             _origLink = plugin.linkColor;
             _origTimer = plugin.timerBarColor;
+            _origTimerText = plugin.timerBarTextColor;
             _origFontFamily = plugin.FontFamilyName;
             _origFontStyle = plugin.FontStyleChoice;
             _origScale = plugin.Scale;
@@ -249,7 +250,7 @@ namespace DynamicWindows
             buttonTimerColor.Name = "buttonTimerColor";
             buttonTimerColor.Size = new Size(88, 27);
             buttonTimerColor.TabIndex = 14;
-            buttonTimerColor.Text = "Timer Color";
+            buttonTimerColor.Text = "Timer Colors";
             buttonTimerColor.UseVisualStyleBackColor = true;
             buttonTimerColor.Click += ButtonTimerColor_Click;
             // 
@@ -260,7 +261,7 @@ namespace DynamicWindows
             buttonDefaults.Name = "buttonDefaults";
             buttonDefaults.Size = new Size(117, 25);
             buttonDefaults.TabIndex = 15;
-            buttonDefaults.Text = "Reset Defaults";
+            buttonDefaults.Text = "Reset to Defaults";
             buttonDefaults.UseVisualStyleBackColor = true;
             buttonDefaults.Click += ButtonDefaults_Click;
             // 
@@ -535,15 +536,57 @@ namespace DynamicWindows
 
         private void ButtonTimerColor_Click(object? sender, EventArgs e)
         {
-            using var colorDialog = new ColorDialog
+            // The aim timer is themed separately from the rest of the plugin, so it gets its
+            // own bar (fill) AND text colour here. Picks apply to the plugin live; the option
+            // window's OK persists and Cancel reverts (via _origTimer / _origTimerText).
+            Color tempBar = _plugin.timerBarColor;
+            Color tempText = _plugin.timerBarTextColor;
+
+            using var dlg = new Form
             {
-                AllowFullOpen = true,
-                Color = _plugin.timerBarColor
+                Text = "Aim Timer Colors",
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition = FormStartPosition.CenterParent,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                ClientSize = new Size(270, 150),
             };
-            if (colorDialog.ShowDialog() != DialogResult.Cancel)
+
+            var preview = new TimerBarPanel
             {
-                _plugin.timerBarColor = colorDialog.Color;
-                buttonTimerColor.ForeColor = colorDialog.Color;
+                Location = new Point(15, 15),
+                Size = new Size(240, 28),
+                BackColor = _plugin.formback,
+                ForeColor = tempText,
+                FillColor = tempBar,
+                Fraction = 0.6,
+                CountText = "5",
+            };
+            var barBtn = new Button { Text = "Bar Color", Location = new Point(15, 55), Size = new Size(115, 27) };
+            var textBtn = new Button { Text = "Text Color", Location = new Point(140, 55), Size = new Size(115, 27) };
+            var okBtn = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(95, 100), Size = new Size(75, 27) };
+            var cancelBtn = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(180, 100), Size = new Size(75, 27) };
+
+            barBtn.Click += (s, ev) =>
+            {
+                using var cd = new ColorDialog { AllowFullOpen = true, Color = tempBar };
+                if (cd.ShowDialog() != DialogResult.Cancel) { tempBar = cd.Color; preview.FillColor = tempBar; preview.Invalidate(); }
+            };
+            textBtn.Click += (s, ev) =>
+            {
+                using var cd = new ColorDialog { AllowFullOpen = true, Color = tempText };
+                if (cd.ShowDialog() != DialogResult.Cancel) { tempText = cd.Color; preview.ForeColor = tempText; preview.Invalidate(); }
+            };
+
+            dlg.Controls.AddRange(new Control[] { preview, barBtn, textBtn, okBtn, cancelBtn });
+            dlg.AcceptButton = okBtn;
+            dlg.CancelButton = cancelBtn;
+
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                _plugin.timerBarColor = tempBar;
+                _plugin.timerBarTextColor = tempText;
+                buttonTimerColor.ForeColor = tempBar;   // option-window swatch tracks the bar colour
             }
         }
 
@@ -554,6 +597,7 @@ namespace DynamicWindows
             _plugin.formback = Color.Black;
             _plugin.linkColor = Color.Blue;
             _plugin.timerBarColor = Color.RoyalBlue;
+            _plugin.timerBarTextColor = Color.White;
             _plugin.FontFamilyName = SystemFonts.DefaultFont.Name;
             _plugin.FontStyleChoice = FontStyle.Regular;
             _plugin.Scale = 1.0f;
@@ -639,6 +683,7 @@ namespace DynamicWindows
             _plugin.formback = _origBack;
             _plugin.linkColor = _origLink;
             _plugin.timerBarColor = _origTimer;
+            _plugin.timerBarTextColor = _origTimerText;
             _plugin.FontFamilyName = _origFontFamily;
             _plugin.FontStyleChoice = _origFontStyle;
             _plugin.Scale = _origScale;

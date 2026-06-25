@@ -25,6 +25,7 @@ namespace DynamicWindows
         public Color linkColor = Color.Blue;
         // Fill colour for the AimTimer countdown bar (default royal blue).
         public Color timerBarColor = Color.RoyalBlue;
+        public Color timerBarTextColor = Color.White;   // aim-timer count text (separate from global fore)
         public bool bPluginEnabled = true;
         public List<string> ignorelist = new List<string>();
         public Dictionary<string, Point> positionList = new Dictionary<string, Point>();
