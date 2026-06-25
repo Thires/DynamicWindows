@@ -1420,9 +1420,6 @@ namespace DynamicWindows
             return win;
         }
 
-        //public DwForm CreateSkinnedWindow(string id, string title, int width, int height)
-        //    => CreateWindow(id, title, width, height);
-
         public DwForm? FindWindowByName(string name)
         {
             foreach (DwForm win in forms)

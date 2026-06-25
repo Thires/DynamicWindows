@@ -34,7 +34,7 @@ namespace DynamicWindows
         private const int DWMWA_CAPTION_COLOR = 35;  // Win11 22000+
         private const int DWMWA_TEXT_COLOR = 36;     // Win11 22000+
 
-        // ── Public API (mirrors SkinnedMDIChild) ─────────────────────────────
+        // ── Public API ──────────────────────────────────────────────────────
 
         public Panel FormBody { get; private set; } = null!;
 
