@@ -20,11 +20,13 @@ namespace DynamicWindows
         private DwForm? window;
         private TreeView tree = null!;
         private Label statusLabel = null!;
+        private Label roomLabel = null!;
         private TextBox detailBox = null!;
         private Button buyButton = null!;
         private Button appraiseButton = null!;
         private Button wikiButton = null!;
         private Button shopButton = null!;
+        private Button closeButton = null;
 
         private TreeNode? currentSurface;
         private TreeNode? currentItem;
@@ -48,6 +50,7 @@ namespace DynamicWindows
             EnsureWindow();
             window!.ShowForm();
             Reset();
+            UpdateRoomName();
             ScanStatus = ScanStatusEnum.Shop;
             plugin.ghost.SendText("shop");
         }
@@ -65,6 +68,18 @@ namespace DynamicWindows
                 tree.Nodes.Clear();
                 SetStatus("");
                 detailBox.Clear();
+            });
+        }
+
+        // Pull the current room name from Genie (set when the shop is scanned).
+        private void UpdateRoomName()
+        {
+            if (roomLabel == null) return;
+            string room = (plugin.ghost?.get_Variable("roomname") ?? string.Empty).Trim();
+            RunOnUi(() =>
+            {
+                roomLabel.Text = room;
+                roomLabel.Visible = room.Length > 0;
             });
         }
 
@@ -148,7 +163,8 @@ namespace DynamicWindows
             appraiseButton = MakeButton("Appraise", Appraise_Click);
             wikiButton = MakeButton("Wiki Lookup", Wiki_Click);
             shopButton = MakeButton("Shop Again", Shop_Click);
-            buttonRow.Controls.AddRange(new Control[] { buyButton, appraiseButton, wikiButton, shopButton });
+            closeButton = MakeButton("Close", (s, e) => window.Close());
+            buttonRow.Controls.AddRange(new Control[] { buyButton, appraiseButton, wikiButton, shopButton, closeButton });
 
             detailBox = new TextBox
             {
@@ -164,8 +180,23 @@ namespace DynamicWindows
             split.Panel2.Controls.Add(detailBox);
             split.Panel2.Controls.Add(buttonRow);
 
+            roomLabel = new Label
+            {
+                Dock = DockStyle.Top,
+                Height = plugin.S(20),
+                AutoSize = false,
+                TextAlign = ContentAlignment.MiddleCenter,
+                BackColor = plugin.formback,
+                ForeColor = plugin.formfore,
+                Font = plugin.HeaderFont,
+                Text = "",
+                Visible = false,   // collapses until we have a room name
+            };
+
             window.FormBody.Controls.Add(split);
+            window.FormBody.Controls.Add(roomLabel);   // top strip, above the split
             try { split.SplitterDistance = plugin.S(260); } catch { /* min-size guard */ }
+            UpdateRoomName();
 
             plugin.forms.Add(window);
         }
@@ -252,7 +283,7 @@ namespace DynamicWindows
                 string t = text.Trim('\n', '\r', ' ');
                 if (t.StartsWith("[Type SHOP [GOOD]")) { FinalizeSurfaceNote(); return; }
                 if (t.Length == 0 || t.StartsWith("[")) return;             // blanks / other markers
-                if (Regex.IsMatch(t, @"^(On|In) the .*you see:")) return;        // surface header
+                if (Regex.IsMatch(t, @"^(On|In|Behind|Under) the .*you see:")) return;        // surface header
                 if (currentSurfaceItems.Any(it => t.StartsWith(it))) return;     // item label line
                 noteBuffer.Add(t);                                              // -> the note/message
             }
