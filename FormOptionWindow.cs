@@ -15,10 +15,7 @@ namespace DynamicWindows
         private Button ButtonCancel = null!;
         private Button buttonHelp = null!;
         private CheckBox checkBoxDisablePlugin = null!;
-        private TextBox textBox_Color = null!;
-        private Button buttonForeground = null!;
-        private Button buttonBackground = null!;
-        private Button buttonFont = null!;
+        private Button buttonAppearance = null!;
         private Button buttonLinkColor = null!;
         private Button buttonTimerColor = null!;
         private Button buttonDefaults = null!;
@@ -40,7 +37,7 @@ namespace DynamicWindows
 
         // Snapshot of every setting this window can change, captured when it opens, so Cancel
         // can revert without writing the XML. OK is the only path that persists.
-        private readonly Color _origFore, _origBack, _origLink, _origTimer, _origTimerText;
+        private readonly Color _origFore, _origBack, _origLink, _origTimer, _origTimerBack, _origTimerText;
         private readonly string _origFontFamily;
         private readonly FontStyle _origFontStyle;
         private readonly float _origScale;
@@ -55,6 +52,7 @@ namespace DynamicWindows
             _origBack = plugin.formback;
             _origLink = plugin.linkColor;
             _origTimer = plugin.timerBarColor;
+            _origTimerBack = plugin.timerBarBackColor;
             _origTimerText = plugin.timerBarTextColor;
             _origFontFamily = plugin.FontFamilyName;
             _origFontStyle = plugin.FontStyleChoice;
@@ -73,9 +71,6 @@ namespace DynamicWindows
             foreach (string str in _plugin.ignorelist)
                 listBox_ignores.Items.Add(str);
 
-            textBox_Color.ForeColor = _plugin.formfore;
-            textBox_Color.BackColor = _plugin.formback;
-            ApplyFontPreview();
             buttonLinkColor.ForeColor = _plugin.linkColor;
             buttonTimerColor.ForeColor = _plugin.timerBarColor;
             checkBoxDisablePlugin.Checked = !_plugin.bPluginEnabled;
@@ -107,10 +102,7 @@ namespace DynamicWindows
             ButtonCancel = new Button();
             buttonHelp = new Button();
             checkBoxDisablePlugin = new CheckBox();
-            textBox_Color = new TextBox();
-            buttonForeground = new Button();
-            buttonBackground = new Button();
-            buttonFont = new Button();
+            buttonAppearance = new Button();
             buttonLinkColor = new Button();
             buttonTimerColor = new Button();
             buttonDefaults = new Button();
@@ -133,7 +125,7 @@ namespace DynamicWindows
             // CheckBoxStowContainer
             // 
             CheckBoxStowContainer.AutoSize = true;
-            CheckBoxStowContainer.Location = new Point(15, 15);
+            CheckBoxStowContainer.Location = new Point(15, 31);
             CheckBoxStowContainer.Margin = new Padding(4, 3, 4, 3);
             CheckBoxStowContainer.Name = "CheckBoxStowContainer";
             CheckBoxStowContainer.Size = new Size(154, 19);
@@ -188,64 +180,31 @@ namespace DynamicWindows
             checkBoxDisablePlugin.UseVisualStyleBackColor = true;
             checkBoxDisablePlugin.CheckedChanged += CheckBoxDisablePlugin_CheckedChanged;
             // 
-            // textBox_Color
+            // buttonAppearance
             // 
-            textBox_Color.Location = new Point(226, 46);
-            textBox_Color.Margin = new Padding(4, 3, 4, 3);
-            textBox_Color.Multiline = true;
-            textBox_Color.Name = "textBox_Color";
-            textBox_Color.Size = new Size(116, 28);
-            textBox_Color.TabIndex = 16;
-            textBox_Color.Text = "Example";
-            textBox_Color.TextAlign = HorizontalAlignment.Center;
-            // 
-            // buttonForeground
-            // 
-            buttonForeground.Location = new Point(196, 15);
-            buttonForeground.Margin = new Padding(4, 3, 4, 3);
-            buttonForeground.Name = "buttonForeground";
-            buttonForeground.Size = new Size(88, 27);
-            buttonForeground.TabIndex = 11;
-            buttonForeground.Text = "Foreground";
-            buttonForeground.UseVisualStyleBackColor = true;
-            buttonForeground.Click += ButtonForeground_Click;
-            // 
-            // buttonBackground
-            // 
-            buttonBackground.Location = new Point(290, 15);
-            buttonBackground.Margin = new Padding(4, 3, 4, 3);
-            buttonBackground.Name = "buttonBackground";
-            buttonBackground.Size = new Size(88, 27);
-            buttonBackground.TabIndex = 10;
-            buttonBackground.Text = "Background";
-            buttonBackground.UseVisualStyleBackColor = true;
-            buttonBackground.Click += ButtonBackground_Click;
-            // 
-            // buttonFont
-            // 
-            buttonFont.Location = new Point(385, 15);
-            buttonFont.Margin = new Padding(4, 3, 4, 3);
-            buttonFont.Name = "buttonFont";
-            buttonFont.Size = new Size(88, 27);
-            buttonFont.TabIndex = 12;
-            buttonFont.Text = "Font…";
-            buttonFont.UseVisualStyleBackColor = true;
-            buttonFont.Click += ButtonFont_Click;
+            buttonAppearance.Location = new Point(315, 10);
+            buttonAppearance.Margin = new Padding(4, 3, 4, 3);
+            buttonAppearance.Name = "buttonAppearance";
+            buttonAppearance.Size = new Size(88, 27);
+            buttonAppearance.TabIndex = 10;
+            buttonAppearance.Text = "Windows";
+            buttonAppearance.UseVisualStyleBackColor = true;
+            buttonAppearance.Click += ButtonAppearance_Click;
             // 
             // buttonLinkColor
             // 
-            buttonLinkColor.Location = new Point(385, 48);
+            buttonLinkColor.Location = new Point(372, 43);
             buttonLinkColor.Margin = new Padding(4, 3, 4, 3);
             buttonLinkColor.Name = "buttonLinkColor";
             buttonLinkColor.Size = new Size(88, 27);
             buttonLinkColor.TabIndex = 13;
-            buttonLinkColor.Text = "Link Color";
+            buttonLinkColor.Text = "Links Color";
             buttonLinkColor.UseVisualStyleBackColor = true;
             buttonLinkColor.Click += ButtonLinkColor_Click;
             // 
             // buttonTimerColor
             // 
-            buttonTimerColor.Location = new Point(385, 82);
+            buttonTimerColor.Location = new Point(261, 43);
             buttonTimerColor.Margin = new Padding(4, 3, 4, 3);
             buttonTimerColor.Name = "buttonTimerColor";
             buttonTimerColor.Size = new Size(88, 27);
@@ -256,7 +215,7 @@ namespace DynamicWindows
             // 
             // buttonDefaults
             // 
-            buttonDefaults.Location = new Point(226, 77);
+            buttonDefaults.Location = new Point(303, 77);
             buttonDefaults.Margin = new Padding(4, 3, 4, 3);
             buttonDefaults.Name = "buttonDefaults";
             buttonDefaults.Size = new Size(117, 25);
@@ -269,7 +228,7 @@ namespace DynamicWindows
             // 
             listbox_openwindows.FormattingEnabled = true;
             listbox_openwindows.ItemHeight = 15;
-            listbox_openwindows.Location = new Point(15, 123);
+            listbox_openwindows.Location = new Point(15, 138);
             listbox_openwindows.Margin = new Padding(4, 3, 4, 3);
             listbox_openwindows.Name = "listbox_openwindows";
             listbox_openwindows.Size = new Size(184, 169);
@@ -279,7 +238,7 @@ namespace DynamicWindows
             // 
             listBox_ignores.FormattingEnabled = true;
             listBox_ignores.ItemHeight = 15;
-            listBox_ignores.Location = new Point(278, 123);
+            listBox_ignores.Location = new Point(278, 138);
             listBox_ignores.Margin = new Padding(4, 3, 4, 3);
             listBox_ignores.Name = "listBox_ignores";
             listBox_ignores.Size = new Size(182, 169);
@@ -287,7 +246,7 @@ namespace DynamicWindows
             // 
             // button_ignore
             // 
-            button_ignore.Location = new Point(15, 300);
+            button_ignore.Location = new Point(15, 315);
             button_ignore.Margin = new Padding(4, 3, 4, 3);
             button_ignore.Name = "button_ignore";
             button_ignore.Size = new Size(63, 27);
@@ -298,7 +257,7 @@ namespace DynamicWindows
             // 
             // button_clear
             // 
-            button_clear.Location = new Point(397, 300);
+            button_clear.Location = new Point(397, 315);
             button_clear.Margin = new Padding(4, 3, 4, 3);
             button_clear.Name = "button_clear";
             button_clear.Size = new Size(64, 27);
@@ -309,7 +268,7 @@ namespace DynamicWindows
             // 
             // button_clearall
             // 
-            button_clearall.Location = new Point(290, 300);
+            button_clearall.Location = new Point(290, 315);
             button_clearall.Margin = new Padding(4, 3, 4, 3);
             button_clearall.Name = "button_clearall";
             button_clearall.Size = new Size(88, 27);
@@ -321,7 +280,7 @@ namespace DynamicWindows
             // label1
             // 
             label1.AutoSize = true;
-            label1.Location = new Point(278, 102);
+            label1.Location = new Point(278, 117);
             label1.Margin = new Padding(4, 0, 4, 0);
             label1.Name = "label1";
             label1.Size = new Size(62, 15);
@@ -331,7 +290,7 @@ namespace DynamicWindows
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new Point(15, 102);
+            label2.Location = new Point(15, 117);
             label2.Margin = new Padding(4, 0, 4, 0);
             label2.Name = "label2";
             label2.Size = new Size(88, 15);
@@ -340,7 +299,7 @@ namespace DynamicWindows
             // 
             // button_closewindow
             // 
-            button_closewindow.Location = new Point(88, 300);
+            button_closewindow.Location = new Point(88, 315);
             button_closewindow.Margin = new Padding(4, 3, 4, 3);
             button_closewindow.Name = "button_closewindow";
             button_closewindow.Size = new Size(88, 27);
@@ -352,7 +311,7 @@ namespace DynamicWindows
             // cbDisableOtherInjuries
             // 
             cbDisableOtherInjuries.AutoSize = true;
-            cbDisableOtherInjuries.Location = new Point(15, 52);
+            cbDisableOtherInjuries.Location = new Point(15, 51);
             cbDisableOtherInjuries.Margin = new Padding(4, 3, 4, 3);
             cbDisableOtherInjuries.Name = "cbDisableOtherInjuries";
             cbDisableOtherInjuries.Size = new Size(190, 19);
@@ -364,7 +323,7 @@ namespace DynamicWindows
             // cbDisableSelfInjuries
             // 
             cbDisableSelfInjuries.AutoSize = true;
-            cbDisableSelfInjuries.Location = new Point(15, 75);
+            cbDisableSelfInjuries.Location = new Point(15, 71);
             cbDisableSelfInjuries.Margin = new Padding(4, 3, 4, 3);
             cbDisableSelfInjuries.Name = "cbDisableSelfInjuries";
             cbDisableSelfInjuries.Size = new Size(174, 19);
@@ -375,7 +334,7 @@ namespace DynamicWindows
             // 
             // trackBarScale
             // 
-            trackBarScale.Location = new Point(15, 355);
+            trackBarScale.Location = new Point(15, 370);
             trackBarScale.Margin = new Padding(4, 3, 4, 3);
             trackBarScale.Name = "trackBarScale";
             trackBarScale.Size = new Size(385, 45);
@@ -385,7 +344,7 @@ namespace DynamicWindows
             // labelScaleValue
             // 
             labelScaleValue.AutoSize = true;
-            labelScaleValue.Location = new Point(408, 361);
+            labelScaleValue.Location = new Point(408, 376);
             labelScaleValue.Margin = new Padding(4, 0, 4, 0);
             labelScaleValue.Name = "labelScaleValue";
             labelScaleValue.Size = new Size(33, 15);
@@ -395,7 +354,7 @@ namespace DynamicWindows
             // labelScaleTitle
             // 
             labelScaleTitle.AutoSize = true;
-            labelScaleTitle.Location = new Point(15, 335);
+            labelScaleTitle.Location = new Point(15, 350);
             labelScaleTitle.Margin = new Padding(4, 0, 4, 0);
             labelScaleTitle.Name = "labelScaleTitle";
             labelScaleTitle.Size = new Size(259, 15);
@@ -418,13 +377,10 @@ namespace DynamicWindows
             Controls.Add(button_ignore);
             Controls.Add(listBox_ignores);
             Controls.Add(listbox_openwindows);
-            Controls.Add(buttonBackground);
-            Controls.Add(buttonForeground);
-            Controls.Add(buttonFont);
+            Controls.Add(buttonAppearance);
             Controls.Add(buttonLinkColor);
             Controls.Add(buttonTimerColor);
             Controls.Add(buttonDefaults);
-            Controls.Add(textBox_Color);
             Controls.Add(checkBoxDisablePlugin);
             Controls.Add(ButtonClose);
             Controls.Add(ButtonCancel);
@@ -466,72 +422,98 @@ namespace DynamicWindows
             }
         }
 
-        private void ButtonForeground_Click(object? sender, EventArgs e)
+        private void ButtonAppearance_Click(object? sender, EventArgs e)
         {
-            using var colorDialog = new ColorDialog
-            {
-                AllowFullOpen = true,
-                Color = _plugin.formfore
-            };
-            if (colorDialog.ShowDialog() != DialogResult.Cancel)
-            {
-                textBox_Color.ForeColor = colorDialog.Color;
-                _plugin.formfore = colorDialog.Color;
-            }
-            Update();
-        }
-
-        private void ButtonBackground_Click(object? sender, EventArgs e)
-        {
-            using var colorDialog = new ColorDialog
-            {
-                AllowFullOpen = true,
-                Color = _plugin.formback
-            };
-            if (colorDialog.ShowDialog() != DialogResult.Cancel)
-            {
-                textBox_Color.BackColor = colorDialog.Color;
-                _plugin.formback = colorDialog.Color;
-            }
-            Update();
-        }
-
-        private void ButtonFont_Click(object? sender, EventArgs e)
-        {
-            using var picker = new FontPickerDialog(_plugin.FontFamilyName, _plugin.FontStyleChoice)
+            // One dialog for foreground, background and font with a single live example —
+            // modelled on FontPickerDialog, but with the colour pickers folded in since the
+            // preview already has to render the font and may as well show the colours too.
+            using var dlg = new AppearanceDialog(
+                _plugin.FontFamilyName, _plugin.FontStyleChoice, _plugin.formfore, _plugin.formback)
             {
                 Owner = this
             };
-            if (picker.ShowDialog() == DialogResult.OK)
+            if (dlg.ShowDialog() == DialogResult.OK)
             {
-                _plugin.FontFamilyName = picker.SelectedFamily;
-                _plugin.FontStyleChoice = picker.SelectedStyle;
-                ApplyFontPreview();
-            }
-        }
-
-        private void ApplyFontPreview()
-        {
-            float size = textBox_Color.Font.Size;
-            try { textBox_Color.Font = new Font(_plugin.FontFamilyName, size, _plugin.FontStyleChoice); }
-            catch
-            {
-                try { textBox_Color.Font = new Font(_plugin.FontFamilyName, size); } catch { /* keep current */ }
+                _plugin.FontFamilyName = dlg.SelectedFamily;
+                _plugin.FontStyleChoice = dlg.SelectedStyle;
+                _plugin.formfore = dlg.SelectedFore;
+                _plugin.formback = dlg.SelectedBack;
             }
         }
 
         private void ButtonLinkColor_Click(object? sender, EventArgs e)
         {
-            using var colorDialog = new ColorDialog
+            // Mirrors the Aim Timer Colors sub-dialog: a live preview up top instead of
+            // jumping straight into the Windows colour picker. A clickable link has two
+            // states in the plugin — its default (un-clicked) appearance is just the
+            // Foreground colour (formfore), and once clicked it turns linkColor. The preview
+            // shows both over the real stream background (formback), since that's what
+            // decides whether either is readable. Only the clicked colour is editable here;
+            // the default sample tracks the Foreground setting and is shown for reference.
+            Color tempLink = _plugin.linkColor;
+
+            using var dlg = new Form
             {
-                AllowFullOpen = true,
-                Color = _plugin.linkColor
+                Text = "Link Colors",
+                FormBorderStyle = FormBorderStyle.FixedDialog,
+                StartPosition = FormStartPosition.CenterParent,
+                MaximizeBox = false,
+                MinimizeBox = false,
+                ClientSize = new Size(240, 150),
             };
-            if (colorDialog.ShowDialog() != DialogResult.Cancel)
+
+            var preview = new Panel
             {
-                _plugin.linkColor = colorDialog.Color;
-                buttonLinkColor.ForeColor = colorDialog.Color;
+                Location = new Point(15, 15),
+                Size = new Size(210, 28),
+                BackColor = _plugin.formback,
+                BorderStyle = BorderStyle.FixedSingle,
+            };
+            Font linkFont;
+            try { linkFont = new Font(_plugin.FontFamilyName, 9f, FontStyle.Underline); }
+            catch { linkFont = new Font(SystemFonts.DefaultFont.FontFamily, 9f, FontStyle.Underline); }
+            var defaultSample = new Label
+            {
+                AutoSize = true,
+                Text = "a link",
+                Font = linkFont,
+                ForeColor = _plugin.formfore,   // default/un-clicked appearance = Foreground
+                BackColor = Color.Transparent,
+                Location = new Point(8, 5),
+            };
+            var clickedSample = new Label
+            {
+                AutoSize = true,
+                Text = "a clicked link",
+                Font = linkFont,
+                ForeColor = tempLink,
+                BackColor = Color.Transparent,
+                Location = new Point(70, 5),
+            };
+            preview.Controls.Add(defaultSample);
+            preview.Controls.Add(clickedSample);
+
+            var linkBtn = new Button { Text = "Clicked Link Color", Location = new Point(15, 55), Size = new Size(210, 27) };
+            var okBtn = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(15, 100), Size = new Size(75, 27) };
+            var cancelBtn = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(150, 100), Size = new Size(75, 27) };
+
+            linkBtn.Click += (s, ev) =>
+            {
+                using var cd = new ColorDialog { AllowFullOpen = true, Color = tempLink };
+                if (cd.ShowDialog() != DialogResult.Cancel) { tempLink = cd.Color; clickedSample.ForeColor = tempLink; }
+            };
+
+            dlg.Controls.AddRange(new Control[] { preview, linkBtn, okBtn, cancelBtn });
+            dlg.AcceptButton = okBtn;
+            dlg.CancelButton = cancelBtn;
+
+            if (dlg.ShowDialog() == DialogResult.OK)
+            {
+                _plugin.linkColor = tempLink;
+                buttonLinkColor.ForeColor = tempLink;   // option-window swatch tracks the link colour
             }
+
+            linkFont.Dispose();
         }
 
         private void ButtonTimerColor_Click(object? sender, EventArgs e)
@@ -540,6 +522,7 @@ namespace DynamicWindows
             // own bar (fill) AND text colour here. Picks apply to the plugin live; the option
             // window's OK persists and Cancel reverts (via _origTimer / _origTimerText).
             Color tempBar = _plugin.timerBarColor;
+            Color tempBack = _plugin.timerBarBackColor;
             Color tempText = _plugin.timerBarTextColor;
 
             using var dlg = new Form
@@ -549,28 +532,34 @@ namespace DynamicWindows
                 StartPosition = FormStartPosition.CenterParent,
                 MaximizeBox = false,
                 MinimizeBox = false,
-                ClientSize = new Size(270, 150),
+                ClientSize = new Size(290, 150),
             };
 
             var preview = new TimerBarPanel
             {
                 Location = new Point(15, 15),
-                Size = new Size(240, 28),
-                BackColor = _plugin.formback,
-                ForeColor = tempText,
+                Size = new Size(260, 28),
                 FillColor = tempBar,
+                BackColor = tempBack,
+                ForeColor = tempText,
                 Fraction = 0.6,
                 CountText = "5",
             };
-            var barBtn = new Button { Text = "Bar Color", Location = new Point(15, 55), Size = new Size(115, 27) };
-            var textBtn = new Button { Text = "Text Color", Location = new Point(140, 55), Size = new Size(115, 27) };
-            var okBtn = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(95, 100), Size = new Size(75, 27) };
-            var cancelBtn = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(180, 100), Size = new Size(75, 27) };
+            var barBtn = new Button { Text = "Bar Color", Location = new Point(15, 55), Size = new Size(84, 27) };
+            var backBtn = new Button { Text = "Back Color", Location = new Point(103, 55), Size = new Size(84, 27) };
+            var textBtn = new Button { Text = "Text Color", Location = new Point(191, 55), Size = new Size(84, 27) };
+            var okBtn = new Button { Text = "OK", DialogResult = DialogResult.OK, Location = new Point(15, 100), Size = new Size(75, 27) };
+            var cancelBtn = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, Location = new Point(200, 100), Size = new Size(75, 27) };
 
             barBtn.Click += (s, ev) =>
             {
                 using var cd = new ColorDialog { AllowFullOpen = true, Color = tempBar };
                 if (cd.ShowDialog() != DialogResult.Cancel) { tempBar = cd.Color; preview.FillColor = tempBar; preview.Invalidate(); }
+            };
+            backBtn.Click += (s, ev) =>
+            {
+                using var cd = new ColorDialog { AllowFullOpen = true, Color = tempBack };
+                if (cd.ShowDialog() != DialogResult.Cancel) { tempBack = cd.Color; preview.BackColor = tempBack; preview.Invalidate(); }
             };
             textBtn.Click += (s, ev) =>
             {
@@ -578,13 +567,14 @@ namespace DynamicWindows
                 if (cd.ShowDialog() != DialogResult.Cancel) { tempText = cd.Color; preview.ForeColor = tempText; preview.Invalidate(); }
             };
 
-            dlg.Controls.AddRange(new Control[] { preview, barBtn, textBtn, okBtn, cancelBtn });
+            dlg.Controls.AddRange(new Control[] { preview, barBtn, backBtn, textBtn, okBtn, cancelBtn });
             dlg.AcceptButton = okBtn;
             dlg.CancelButton = cancelBtn;
 
             if (dlg.ShowDialog() == DialogResult.OK)
             {
                 _plugin.timerBarColor = tempBar;
+                _plugin.timerBarBackColor = tempBack;
                 _plugin.timerBarTextColor = tempText;
                 buttonTimerColor.ForeColor = tempBar;   // option-window swatch tracks the bar colour
             }
@@ -597,6 +587,7 @@ namespace DynamicWindows
             _plugin.formback = Color.Black;
             _plugin.linkColor = Color.Blue;
             _plugin.timerBarColor = Color.RoyalBlue;
+            _plugin.timerBarBackColor = Color.Black;
             _plugin.timerBarTextColor = Color.White;
             _plugin.FontFamilyName = SystemFonts.DefaultFont.Name;
             _plugin.FontStyleChoice = FontStyle.Regular;
@@ -605,11 +596,8 @@ namespace DynamicWindows
             labelScaleValue.Text = _plugin.Scale.ToString("F2") + "x";
 
             // Refresh the previews so the reset is visible immediately (OK saves, Cancel reverts).
-            textBox_Color.ForeColor = _plugin.formfore;
-            textBox_Color.BackColor = _plugin.formback;
             buttonLinkColor.ForeColor = _plugin.linkColor;
             buttonTimerColor.ForeColor = _plugin.timerBarColor;
-            ApplyFontPreview();
         }
 
         private void ButtonClose_Click(object? sender, EventArgs e)
@@ -683,6 +671,7 @@ namespace DynamicWindows
             _plugin.formback = _origBack;
             _plugin.linkColor = _origLink;
             _plugin.timerBarColor = _origTimer;
+            _plugin.timerBarBackColor = _origTimerBack;
             _plugin.timerBarTextColor = _origTimerText;
             _plugin.FontFamilyName = _origFontFamily;
             _plugin.FontStyleChoice = _origFontStyle;

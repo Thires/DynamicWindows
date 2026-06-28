@@ -25,6 +25,7 @@ namespace DynamicWindows
         public Color linkColor = Color.Blue;
         // Fill colour for the AimTimer countdown bar (default royal blue).
         public Color timerBarColor = Color.RoyalBlue;
+        public Color timerBarBackColor = Color.Black;   // aim-timer area behind the bar (separate from global back)
         public Color timerBarTextColor = Color.White;   // aim-timer count text (separate from global fore)
         public bool bPluginEnabled = true;
         public List<string> ignorelist = new List<string>();
@@ -87,7 +88,7 @@ namespace DynamicWindows
 
         // ── IPlugin metadata ─────────────────────────────────────────────────
         public string Name => "Dynamic Windows";
-        public string Version => "3.0.0";
+        public string Version => "3.0.1";
         public string Author => "Multiple Developers";
         public string Description => "Displays content windows specified through the XML stream from the game.";
 

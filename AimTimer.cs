@@ -79,16 +79,16 @@ namespace DynamicWindows
             int winH = barH + 4;  // 2px padding top + 2px bottom, no dead space
 
             var win = _plugin.CreateWindow("AimTimerDialog", "Aim Timer", winW, winH);
-            win.FormBody.BackColor = _plugin.formback;
+            win.FormBody.BackColor = _plugin.timerBarBackColor;
             win.FormBody.Visible = false;
 
             var timerBar = new TimerBarPanel
             {
                 Name = "bar",
                 Dock = DockStyle.Fill,   // fills formBody exactly — no gap
-                BackColor = _plugin.formback,
-                ForeColor = _plugin.timerBarTextColor,
                 FillColor = _plugin.timerBarColor,
+                BackColor = _plugin.timerBarBackColor,
+                ForeColor = _plugin.timerBarTextColor,
             };
 
             win.FormBody.Controls.Add(timerBar);

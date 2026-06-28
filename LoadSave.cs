@@ -25,6 +25,7 @@ namespace DynamicWindows
         private const FontStyle DefaultFontStyle = FontStyle.Regular;
         private static readonly Color DefaultLinkColor = Color.Blue;
         private static readonly Color DefaultTimerColor = Color.RoyalBlue;
+        private static readonly Color DefaultTimerBackColor = Color.Black;
         private static readonly Color DefaultTimerTextColor = Color.White;
 
         public LoadSave(Plugin plugin, string configPath, string characterName)
@@ -66,6 +67,7 @@ namespace DynamicWindows
             plugin.FontStyleChoice = DefaultFontStyle;
             plugin.linkColor = DefaultLinkColor;
             plugin.timerBarColor = DefaultTimerColor;
+            plugin.timerBarBackColor = DefaultTimerBackColor;
             plugin.timerBarTextColor = DefaultTimerTextColor;
             plugin.ignorelist.Clear();
             plugin.positionList.Clear();
@@ -154,6 +156,9 @@ namespace DynamicWindows
                     case "timerColor":
                         plugin.timerBarColor = ColorTranslator.FromHtml(element.GetAttribute("color"));
                         break;
+                    case "timerBackColor":
+                        plugin.timerBarBackColor = ColorTranslator.FromHtml(element.GetAttribute("color"));
+                        break;
                     case "timerTextColor":
                         plugin.timerBarTextColor = ColorTranslator.FromHtml(element.GetAttribute("color"));
                         break;
@@ -230,6 +235,8 @@ namespace DynamicWindows
                 AddConfig(xml, root, prefix, "linkColor", "color", ColorTranslator.ToHtml(plugin.linkColor));
             if (plugin.timerBarColor != DefaultTimerColor)
                 AddConfig(xml, root, prefix, "timerColor", "color", ColorTranslator.ToHtml(plugin.timerBarColor));
+            if (plugin.timerBarBackColor != DefaultTimerBackColor)
+                AddConfig(xml, root, prefix, "timerBackColor", "color", ColorTranslator.ToHtml(plugin.timerBarBackColor));
             if (plugin.timerBarTextColor != DefaultTimerTextColor)
                 AddConfig(xml, root, prefix, "timerTextColor", "color", ColorTranslator.ToHtml(plugin.timerBarTextColor));
 
